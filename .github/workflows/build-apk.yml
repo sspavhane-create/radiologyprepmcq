@@ -18,10 +18,10 @@ jobs:
       - name: Ensure Gradle Wrapper Jar
         run: |
           cd android
-          if [ ! -s gradle/wrapper/gradle-wrapper.jar ] || ! unzip -t gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
-            echo "Restoring gradle-wrapper.jar..."
-            mkdir -p gradle/wrapper
-            curl -sSL "https://raw.githubusercontent.com/gradle/gradle/v8.2.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+          mkdir -p gradle/wrapper
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ] || ! unzip -p gradle/wrapper/gradle-wrapper.jar org/gradle/wrapper/GradleWrapperMain.class >/dev/null 2>&1; then
+            echo "Restoring valid gradle-wrapper.jar..."
+            curl -sSL -L "https://raw.githubusercontent.com/ionic-team/capacitor/main/android/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
           fi
 
       - name: Setup Node.js
@@ -55,13 +55,13 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android
-          if [ ! -s gradle/wrapper/gradle-wrapper.jar ] || ! unzip -t gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
-            echo "Restoring gradle-wrapper.jar..."
-            mkdir -p gradle/wrapper
-            curl -sSL "https://raw.githubusercontent.com/gradle/gradle/v8.2.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+          mkdir -p gradle/wrapper
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ] || ! unzip -p gradle/wrapper/gradle-wrapper.jar org/gradle/wrapper/GradleWrapperMain.class >/dev/null 2>&1; then
+            echo "Restoring valid gradle-wrapper.jar..."
+            curl -sSL -L "https://raw.githubusercontent.com/ionic-team/capacitor/main/android/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
           fi
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace || gradle assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
