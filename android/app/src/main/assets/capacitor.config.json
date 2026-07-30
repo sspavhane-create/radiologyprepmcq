@@ -1,0 +1,8 @@
+{
+	"appId": "com.radiologyprep.mcq",
+	"appName": "Radiology MCQ Prep",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	}
+}
