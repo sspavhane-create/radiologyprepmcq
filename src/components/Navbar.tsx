@@ -1,0 +1,264 @@
+import React, { useState } from 'react';
+import { 
+  Activity, 
+  BookOpen, 
+  Sparkles, 
+  Bookmark, 
+  Layers, 
+  Award, 
+  Flame,
+  Plus,
+  Globe,
+  UserCheck,
+  PhoneCall,
+  Info,
+  Database
+} from 'lucide-react';
+import { LanguageMode } from '../types';
+
+interface NavbarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  totalQuestionsCount: number;
+  bookmarkedCount: number;
+  accuracyRate: number;
+  streakDays: number;
+  langMode: LanguageMode;
+  setLangMode: (mode: LanguageMode) => void;
+  onOpenAddModal: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab,
+  setActiveTab,
+  totalQuestionsCount,
+  bookmarkedCount,
+  accuracyRate,
+  streakDays,
+  langMode,
+  setLangMode,
+  onOpenAddModal,
+}) => {
+  const [showDevModal, setShowDevModal] = useState(false);
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Activity },
+    { id: 'quiz', label: 'Practice Quiz', icon: BookOpen },
+    { id: 'categories', label: 'Categories', icon: Layers },
+    { id: 'question-bank', label: '२०००+ प्रश्न बँक', icon: Database, badge: totalQuestionsCount },
+    { id: 'flashcards', label: 'Flashcards', icon: Sparkles },
+    { id: 'bookmarks', label: 'Saved Questions', icon: Bookmark, badge: bookmarkedCount },
+  ];
+
+  return (
+    <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 text-slate-100 shadow-md">
+      {/* Developer & Syllabus Sub-Header Credit Ribbon */}
+      <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-cyan-950 border-b border-teal-500/20 px-3 py-1 text-xs">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-teal-300 font-medium overflow-x-auto whitespace-nowrap">
+            <span className="px-2 py-0.5 rounded bg-teal-500/20 text-teal-200 text-[11px] font-bold border border-teal-500/30">
+              महाराष्ट्र शासन - आरोग्य विभाग गट 'क'
+            </span>
+            <span className="hidden sm:inline text-slate-300">
+              क्ष-किरण वैज्ञानिक अधिकारी (X-Ray Scientific Officer Exam)
+            </span>
+            <span className="text-amber-300 font-bold hidden md:inline">
+              • २०० गुण (100 Qs)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Developer Credit pill button */}
+            <button 
+              onClick={() => setShowDevModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-teal-400/50 transition-all text-[11px]"
+            >
+              <UserCheck className="w-3 h-3 text-teal-400" />
+              <span>Prepared By: <strong className="text-teal-300 font-semibold">श्री शंकर पव्हणे</strong></span>
+              <Info className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {/* Language Selector */}
+            <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+              <span className="px-1.5 text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                <Globe className="w-3 h-3 text-cyan-400" />
+                <span>भाषा:</span>
+              </span>
+              <button
+                onClick={() => setLangMode('dual')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                  langMode === 'dual' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                }`}
+                title="मराठी व इंग्रजी दोन्ही भाषा"
+              >
+                दोन्ही (Dual)
+              </button>
+              <button
+                onClick={() => setLangMode('mr')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                  langMode === 'mr' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                }`}
+                title="फक्त मराठी"
+              >
+                मराठी
+              </button>
+              <button
+                onClick={() => setLangMode('en')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                  langMode === 'en' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                }`}
+                title="English Only"
+              >
+                English
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Brand & Logo */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-cyan-500/20">
+              <Activity className="w-6 h-6 text-slate-950 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg text-white tracking-tight">X-Ray Scientific Officer</span>
+                <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full">
+                  PREP 2026
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 hidden sm:block">सार्वजनिक आरोग्य विभाग - जिल्हा रुग्णालय गडचिरोली</p>
+            </div>
+          </div>
+
+          {/* Center Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? 'bg-teal-500 text-slate-950 shadow-sm font-semibold'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
+                  <span>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span
+                      className={`ml-1 px-1.5 py-0.2 text-[11px] rounded-full font-bold ${
+                        isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-teal-500/20 text-teal-300'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Right Metrics & Quick Actions */}
+          <div className="flex items-center gap-3">
+            {/* Streak Badge */}
+            <div className="hidden lg:flex items-center gap-1.5 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-700/50 text-xs text-slate-300" title="Study streak">
+              <Flame className="w-4 h-4 text-amber-400 fill-amber-400/20" />
+              <span className="font-semibold text-amber-300">{streakDays} Day Streak</span>
+            </div>
+
+            {/* Accuracy Badge */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-700/50 text-xs text-slate-300">
+              <Award className="w-4 h-4 text-cyan-400" />
+              <span>Acc: <strong className="text-cyan-300 font-bold">{accuracyRate}%</strong></span>
+            </div>
+
+            {/* Add/Generate Custom Question */}
+            <button
+              onClick={onOpenAddModal}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:shadow-teal-500/25 transition-all"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span className="hidden sm:inline">Add Question</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Row */}
+        <div className="md:hidden flex items-center justify-between py-2 border-t border-slate-800 overflow-x-auto gap-1 text-xs">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                  isActive ? 'bg-teal-500 text-slate-950 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Developer Details Modal */}
+      {showDevModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-teal-500/40 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl space-y-4 relative">
+            <button 
+              onClick={() => setShowDevModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+            >
+              ✕
+            </button>
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="w-12 h-12 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 font-bold text-xl">
+                शंप
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-white">श्री शंकर पव्हणे</h3>
+                <p className="text-xs text-teal-400 font-semibold">क्ष-किरण वैज्ञानिक अधिकारी (X-Ray Scientific Officer)</p>
+                <p className="text-xs text-slate-400">जिल्हा रुग्णालय गडचिरोली</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm text-slate-300 bg-slate-850 p-4 rounded-xl border border-slate-800">
+              <p className="text-xs text-teal-200 font-semibold uppercase tracking-wider">परीक्षा पोर्टल माहिती व मार्गदर्शन</p>
+              <p className="text-xs leading-relaxed">
+                सार्वजनिक आरोग्य विभाग (महाराष्ट्र शासन) गट 'क' पद भरतीसाठी क्ष-किरण वैज्ञानिक अधिकारी पदाचा संपूर्ण अभ्यासक्रम (Syllabus) व प्रश्नसंच मराठी भाषांतरासह विकसित केला आहे.
+              </p>
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-slate-200 text-xs">
+                  <PhoneCall className="w-4 h-4 text-teal-400" />
+                  <span>संपर्क: <strong className="text-teal-300 font-bold">9769441271 (97694 41271)</strong></span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-200 text-xs">
+                  <UserCheck className="w-4 h-4 text-cyan-400" />
+                  <span>कर्मचारी पद: क्ष-किरण वैज्ञानिक अधिकारी / तंत्रज्ञ</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowDevModal(false)}
+              className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 font-bold rounded-xl hover:brightness-110 transition-all text-sm"
+            >
+              अभ्यास सुरू करा (Continue Study)
+            </button>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};
+

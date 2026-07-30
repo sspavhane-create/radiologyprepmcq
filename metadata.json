@@ -1,0 +1,6 @@
+{
+  "name": "X-Ray Scientific Officer Prep",
+  "description": "Comprehensive exam preparation and study platform for X-Ray Scientific Officers, featuring category-wise practice, flashcards, mock exams, detailed explanations, and AI study tutor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
