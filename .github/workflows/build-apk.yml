@@ -29,6 +29,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Install Dependencies
         run: npm install
 
@@ -41,6 +44,10 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ] || ! java -jar gradle/wrapper/gradle-wrapper.jar --version >/dev/null 2>&1; then
+            echo "Gradle wrapper jar is missing or corrupt. Recovering wrapper..."
+            gradle wrapper || curl -sSL "https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+          fi
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 

@@ -1,0 +1,12 @@
+# Explicitly mark binary files to prevent line-ending corruption during git operations
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.so binary
+*.aar binary
+
+# Default text line endings
+* text=auto eol=lf
