@@ -1,4 +1,4 @@
-name: Build Android APK & GitHub Pages
+name: Build Android APK
 
 on:
   push:
@@ -6,17 +6,8 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'build-and-deploy'
-  cancel-in-progress: true
-
 jobs:
-  build-android-apk:
+  build-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
 
@@ -42,15 +33,15 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Web Frontend
+      - name: Build Web Application
         run: npx vite build
 
-      - name: Add Android Platform & Sync Capacitor
+      - name: Sync Capacitor Android
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: Build Android Debug APK
+      - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
@@ -62,31 +53,3 @@ jobs:
           name: Radiology_Prep_MCQ.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-
-  deploy-github-pages:
-    name: Deploy to GitHub Pages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Web Frontend
-        run: npx vite build
-
-      - name: Upload Web Artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
