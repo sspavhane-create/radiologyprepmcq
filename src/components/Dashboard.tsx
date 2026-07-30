@@ -31,6 +31,7 @@ interface DashboardProps {
   onStartQuiz: (options: { mode: 'exam' | 'practice' | 'category' | 'core'; category?: string }) => void;
   onNavigateTab: (tab: string) => void;
   onSelectQuestionDirect: (questionId: number) => void;
+  onSelectCategoryForChapters?: (categoryName: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -41,6 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onStartQuiz,
   onNavigateTab,
   onSelectQuestionDirect,
+  onSelectCategoryForChapters
 }) => {
   // Compute aggregate stats
   const totalQuestions = questions.length;
@@ -94,31 +96,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
-              क्ष-किरण वैज्ञानिक अधिकारी (X-Ray Scientific Officer)
+              सार्वजनिक आरोग्य विभाग गट 'क' ऑनलाईन भरती परीक्षा
               <span className="block text-teal-300 text-lg sm:text-xl font-bold mt-1">
-                भरती परीक्षा २०२६ - संपूर्ण अभ्यासक्रम व सराव प्रश्नसंच
+                क्ष-किरण वैज्ञानिक अधिकारी (X-Ray Scientific Officer) - अधिकृत अभ्यासक्रम
               </span>
             </h1>
 
             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
-              सार्वजनिक आरोग्य विभागाच्या अधिकृत अभ्यासक्रमानुसार एकूण २०० गुणांची परीक्षा (१०० बहुपर्यायी प्रश्न, प्रत्येकी २ गुण, वेळ २ तास). तांत्रिक क्ष-किरण शास्त्र (८० गुण) व बिगर-तांत्रिक विषय (१२० गुण) समाविष्ट.
+              आरोग्य विभाग गट 'क' च्या अधिकृत नियमांनुसार एकूण १०० वस्तुनिष्ठ बहुपर्यायी प्रश्न (२०० गुण), वेळ २.०० तास (१२० मिनिटे). ८०% गुण (८० प्रश्न/१६० गुण) तांत्रिक अर्हतेसाठी व २०% गुण (२० प्रश्न/४० गुण) बिगर-तांत्रिक विषयांसाठी.
             </p>
 
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-              <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-teal-300 border border-slate-700 font-bold">
-                तांत्रिक विषय: ८० गुण (४० प्रश्न)
+              <span className="px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 font-extrabold">
+                तांत्रिक घटक (80%): १६० गुण (८० प्रश्न)
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-cyan-300 border border-slate-700 font-bold">
-                इंग्रजी: ३० गुण (१५ प्रश्न)
+                इंग्रजी: १० गुण (५ प्रश्न)
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-orange-300 border border-slate-700 font-bold">
-                मराठी: ३० गुण (१५ प्रश्न)
+                मराठी: १० गुण (५ प्रश्न)
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-purple-300 border border-slate-700 font-bold">
-                सामान्य ज्ञान: ३० गुण (१५ प्रश्न)
+                सामान्य ज्ञान: १० गुण (५ प्रश्न)
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-rose-300 border border-slate-700 font-bold">
-                बौद्धिक चाचणी: ३० गुण (१५ प्रश्न)
+                बौद्धिक चाचणी: १० गुण (५ प्रश्न)
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                ⏱️ वेळ: २.०० तास (१२० मिनिटे)
               </span>
             </div>
           </div>
@@ -153,6 +158,74 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-[10px] text-slate-400">आरोग्य सेवा महाराष्ट्र</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Official Arogya Vibhag Group C Exam Rules Box */}
+      <div className="bg-slate-900 border border-teal-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-white">
+                आरोग्य विभाग गट 'क' परीक्षा स्वरूप व अधिकृत नियम (Group C Exam Pattern)
+              </h2>
+              <p className="text-xs text-slate-400">सार्वजनिक आरोग्य विभाग गट 'क' ऑनलाईन परीक्षेची अधिकृत माहिती व गुणरचना</p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block text-xs font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/30 px-3 py-1 rounded-full">
+            १०० प्रश्न • २०० गुण
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+            <div className="font-bold text-teal-300 flex items-center gap-1.5">
+              <span>📌 १. ऑनलाईन परीक्षा स्वरूप (Online Exam)</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              गट 'क' पदांकरिता १०० प्रश्न असलेली २०० गुणांची ऑनलाईन परीक्षा घेण्यात येईल. सर्व प्रश्न वस्तुनिष्ठ बहुपर्यायी (MCQ) स्वरूपाचे असतील व प्रत्येक प्रश्नास ०२ गुण मिळतील.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+            <div className="font-bold text-teal-300 flex items-center gap-1.5">
+              <span>🎯 २. तांत्रिक व बिगर-तांत्रिक गुणविभागणी (80:20 Ratio)</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              विभागाशी निगडीत तांत्रिक/व्यावसायिक पदांसाठी <strong className="text-teal-300">८०% गुण (८० प्रश्न = १६० गुण)</strong> तांत्रिक अर्हतेवर व <strong className="text-teal-300">२०% गुण (२० प्रश्न = ४० गुण)</strong> मराठी, इंग्रजी, सामान्य ज्ञान व गणित यांवर असतील.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+            <div className="font-bold text-teal-300 flex items-center gap-1.5">
+              <span>🌐 ३. परीक्षेचे माध्यम (Medium of Question Paper)</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              ज्या पदांसाठी शैक्षणिक अर्हता किमान पदवीधर आहे त्या पदांसाठी मराठी भाषा विषयक प्रश्न वगळता प्रश्नपत्रिकेतील सर्व प्रश्न इंग्रजी (English) माध्यमामध्ये असतील.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+            <div className="font-bold text-teal-300 flex items-center gap-1.5">
+              <span>🚗 ४. वाहनचालक पद विशेष नियम (Driver Post Pattern)</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              वाहनचालक या पदाकरिता २० प्रश्न (४० गुण) मराठी, इंग्रजी, सामान्य ज्ञान व बौद्धिक चाचणीवर आणि ८० प्रश्न (१६० गुण) विषयाधारित (वाहनचालक कौशल्यावर) अशी एकूण २०० गुणांची परीक्षा + व्यावसायिक चाचणी होईल.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-teal-950/40 border border-teal-500/30 p-3 rounded-xl flex items-center justify-between text-xs text-teal-200 font-semibold">
+          <div className="flex items-center gap-2">
+            <Award className="w-4 h-4 text-teal-400 shrink-0" />
+            <span>परीक्षेचा कालावधी: २.०० तास (१२० मिनिटे) • नकारात्मक गुणपद्धती (Negative Marking) लागू नाही.</span>
+          </div>
+          <span className="text-[11px] bg-teal-500 text-slate-950 font-black px-2.5 py-0.5 rounded-md">
+            २.०० तास
+          </span>
         </div>
       </div>
 
@@ -255,7 +328,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             return (
               <div
                 key={cat.name}
-                className="group relative bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-teal-500/50 rounded-xl p-5 transition-all duration-200 flex flex-col justify-between shadow-md"
+                onClick={() => {
+                  if (onSelectCategoryForChapters) {
+                    onSelectCategoryForChapters(cat.name);
+                  } else {
+                    onNavigateTab('categories');
+                  }
+                }}
+                className="group relative bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-teal-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between shadow-md cursor-pointer"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -274,8 +354,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         )}
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-teal-300 border border-slate-700 whitespace-nowrap">
-                      {cat.marks} गुण ({catQuestions.length} Qs)
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-500/10 text-teal-300 border border-teal-500/20 whitespace-nowrap">
+                      प्रकरणे व घटक &rarr;
                     </span>
                   </div>
 
@@ -291,10 +371,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
 
                   <button
-                    onClick={() => onStartQuiz({ mode: 'category', category: cat.name })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-slate-950 bg-teal-400 hover:bg-teal-300 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onSelectCategoryForChapters) {
+                        onSelectCategoryForChapters(cat.name);
+                      } else {
+                        onNavigateTab('categories');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-extrabold text-slate-950 bg-teal-400 hover:bg-teal-300 px-3.5 py-1.5 rounded-xl transition-all shadow-sm"
                   >
-                    <span>सराव करा (Practice)</span>
+                    <span>संबंधित प्रकरणे पाहा (View Chapters)</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>

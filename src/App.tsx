@@ -29,6 +29,12 @@ export default function App() {
   const [langMode, setLangMode] = useState<LanguageMode>('dual');
   
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+
+  const handleSelectCategoryForChapters = (catName: string) => {
+    setSelectedCategoryFilter(catName);
+    setActiveTab('categories');
+  };
   
   // Active Quiz State
   const [activeQuizQuestions, setActiveQuizQuestions] = useState<Question[] | null>(null);
@@ -90,22 +96,51 @@ export default function App() {
     let title = 'Practice Exam';
     let examMode = false;
 
-    if (options.mode === 'core') {
-      quizSet = questions.filter(q => q.id <= 6 || q.section === 'technical');
-      title = 'क्ष-किरण तांत्रिक प्रश्नसंच (Technical Core Set)';
-    } else if (options.mode === 'category' && options.category) {
-      quizSet = questions.filter(q => q.category === options.category);
-      title = `${options.category} Practice`;
-    } else if (options.mode === 'saved' && options.questionIds) {
-      quizSet = questions.filter(q => options.questionIds?.includes(q.id));
-      title = 'Saved Questions Practice';
-    } else if (options.mode === 'missed' && options.questionIds) {
-      quizSet = questions.filter(q => options.questionIds?.includes(q.id));
-      title = 'Missed Questions Review';
-    } else {
-      quizSet = [...questions].sort(() => Math.random() - 0.5);
+    if (options.mode === 'exam') {
+      const techQs = questions.filter(q => q.section === 'technical' || q.category.includes('Technical'));
+      const marathiQs = questions.filter(q => q.section === 'marathi' || q.category.includes('Marathi'));
+      const englishQs = questions.filter(q => q.section === 'english' || q.category.includes('English'));
+      const gkQs = questions.filter(q => q.section === 'gk' || q.category.includes('General Knowledge'));
+      const logicalQs = questions.filter(q => q.section === 'logical' || q.category.includes('Logical'));
+
+      const sampledTech = [...techQs].sort(() => Math.random() - 0.5).slice(0, 40);
+      const sampledEnglish = [...englishQs].sort(() => Math.random() - 0.5).slice(0, 15);
+      const sampledMarathi = [...marathiQs].sort(() => Math.random() - 0.5).slice(0, 15);
+      const sampledGk = [...gkQs].sort(() => Math.random() - 0.5).slice(0, 15);
+      const sampledLogical = [...logicalQs].sort(() => Math.random() - 0.5).slice(0, 15);
+
+      quizSet = [
+        ...sampledTech,
+        ...sampledEnglish,
+        ...sampledMarathi,
+        ...sampledGk,
+        ...sampledLogical
+      ];
+
+      // If dataset has fewer than 100 questions, fill with remaining
+      if (quizSet.length < 100) {
+        const remaining = questions.filter(q => !quizSet.some(sq => sq.id === q.id));
+        quizSet = [...quizSet, ...remaining.sort(() => Math.random() - 0.5)].slice(0, 100);
+      }
+
       title = 'सार्वजनिक आरोग्य विभाग - १०० प्रश्न भरती परीक्षा (200 Marks)';
       examMode = true;
+    } else if (options.mode === 'core') {
+      quizSet = questions.filter(q => q.id <= 6 || q.section === 'technical');
+      title = 'क्ष-किरण तांत्रिकी मुख्य सराव संच (Technical Core Set)';
+    } else if (options.mode === 'category' && options.category) {
+      quizSet = questions.filter(q => q.category === options.category);
+      title = `${options.category} - सराव परीक्षा`;
+    } else if (options.mode === 'saved' && options.questionIds) {
+      quizSet = questions.filter(q => options.questionIds?.includes(q.id));
+      title = 'जतन केलेले प्रश्न सराव (Saved Questions Practice)';
+    } else if (options.mode === 'missed' && options.questionIds) {
+      quizSet = questions.filter(q => options.questionIds?.includes(q.id));
+      title = 'चुकलेल्या प्रश्नांचा पुनर्अभ्यास (Missed Questions Review)';
+    } else {
+      quizSet = [...questions].sort(() => Math.random() - 0.5);
+      title = 'सार्वजनिक आरोग्य विभाग - सराव चाचणी (Practice Mode)';
+      examMode = false;
     }
 
     if (quizSet.length === 0) quizSet = questions.slice(0, 10);
@@ -240,6 +275,7 @@ export default function App() {
             onStartQuiz={handleStartQuiz}
             onNavigateTab={setActiveTab}
             onSelectQuestionDirect={handleSelectQuestionDirect}
+            onSelectCategoryForChapters={handleSelectCategoryForChapters}
           />
         ) : activeTab === 'quiz' ? (
           /* DEFAULT QUIZ LAUNCHER PAGE */
@@ -271,6 +307,8 @@ export default function App() {
             questions={questions}
             quizSessions={quizSessions}
             bookmarkedIds={bookmarkedIds}
+            selectedCategoryFilter={selectedCategoryFilter}
+            onSelectCategoryFilter={setSelectedCategoryFilter}
             onStartQuizCategory={(cat) => handleStartQuiz({ mode: 'category', category: cat })}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
             onGenerateCategoryQuestions={(cat) => setIsAddModalOpen(true)}

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Question } from '../types';
 import { CATEGORIES } from '../data/initialQuestions';
+import { ALL_30_CHAPTERS } from '../data/chaptersData';
+import { getIsPremiumUnlocked } from '../lib/storage';
+import { PremiumUnlockModal } from './PremiumUnlockModal';
 import { 
   Sparkles, 
   Download, 
@@ -18,7 +21,10 @@ import {
   ShieldCheck,
   Zap,
   Activity,
-  Award
+  Award,
+  Lock,
+  Play,
+  Key
 } from 'lucide-react';
 
 interface QuestionBankGeneratorProps {
@@ -26,25 +32,6 @@ interface QuestionBankGeneratorProps {
   onAddMultipleQuestions: (newQs: Question[]) => void;
   onNavigateTab: (tab: string) => void;
 }
-
-export const SAIA_CHAPTERS = [
-  { id: 1, part: 'Part I', title: 'Chapter 1: Legal and Ethical Aspects', titleMr: 'प्रकरण १: कायदेशीर आणि नैतिक पैलू (HIPAA, Patient Rights, Torts)', category: 'Technical: Radiophysics & Machine Principles' },
-  { id: 2, part: 'Part I', title: 'Chapter 2: Patient Communication and Safety', titleMr: 'प्रकरण २: रुग्ण संवादाची कौशल्ये, सुरक्षा व व्हेरीफिकेशन', category: 'Technical: Anatomy & Radiographic Positioning' },
-  { id: 3, part: 'Part I', title: 'Chapter 3: Infection Control', titleMr: 'प्रकरण ३: संसर्ग नियंत्रण, Asepsis व Handwashing मार्गदर्शक तत्त्वे', category: 'Technical: Films, Contrast Media & Digital DR/PACS' },
-  { id: 4, part: 'Part I', title: 'Chapter 4: Medical Emergencies and Contrast Media', titleMr: 'प्रकरण ४: वैद्यकीय आणीबाणी, शॉक, ऑक्सिजन व कॉन्ट्रास्ट डाय', category: 'Technical: Films, Contrast Media & Digital DR/PACS' },
-  { id: 5, part: 'Part II', title: 'Chapter 5: General Procedural Considerations', titleMr: 'प्रकरण ५: सामान्य पोझिशनिंग तत्त्वे, बॉडी प्लॅन्स व बॉडी हॅबिटस', category: 'Technical: Anatomy & Radiographic Positioning' },
-  { id: 6, part: 'Part II', title: 'Chapter 6: Imaging Procedures (Anatomy & Positioning)', titleMr: 'प्रकरण ६: अवयव रचना, पोझिशनिंग (हाडे, सांधे, चेस्ट, स्पाईन, स्कल व सिस्टीम्स)', category: 'Technical: Anatomy & Radiographic Positioning' },
-  { id: 7, part: 'Part III', title: 'Chapter 7: Radiation Protection Considerations', titleMr: 'प्रकरण ७: रेडिएशन संरक्षण, LET, RBE व बायोलॉजिकल इफेक्ट्स', category: 'Technical: Radiation Protection & Hazards' },
-  { id: 8, part: 'Part III', title: 'Chapter 8: Patient Protection', titleMr: 'प्रकरण ८: रुग्णाचे रेडिएशनपासून संरक्षण (Collimation, Shielding, 10-Day Rule)', category: 'Technical: Radiation Protection & Hazards' },
-  { id: 9, part: 'Part III', title: 'Chapter 9: Personnel Protection', titleMr: 'प्रकरण ९: रेडिएशन कर्मचाऱ्यांचे संरक्षण (ALARA, Barriers, Inverse Square Law)', category: 'Technical: Radiation Protection & Hazards' },
-  { id: 10, part: 'Part III', title: 'Chapter 10: Radiation Exposure and Monitoring', titleMr: 'प्रकरण १०: रेडिएशन मापन व TLD/OSL डोसामीटर मॉनिटरिंग', category: 'Technical: Radiation Protection & Hazards' },
-  { id: 11, part: 'Part IV', title: 'Chapter 11: Selection of Technical Factors', titleMr: 'प्रकरण ११: तांत्रिक घटक (mAs, kVp, 15% Rule, Grids, Heel Effect)', category: 'Technical: Radiophysics & Machine Principles' },
-  { id: 12, part: 'Part IV', title: 'Chapter 12: Image Processing and Quality Assurance', titleMr: 'प्रकरण १२: इमेज प्रोसेसिंग, हिस्टोग्राम, LUT व गुणवत्त्ता नियंत्रण', category: 'Technical: Films, Contrast Media & Digital DR/PACS' },
-  { id: 13, part: 'Part IV', title: 'Chapter 13: Image Evaluation (Screen-Film and Electronic)', titleMr: 'प्रकरण १३: एक्स-रे इमेज मूल्यमापन, आर्टिफॅक्ट्स व तपासाच्या पद्धती', category: 'Technical: Films, Contrast Media & Digital DR/PACS' },
-  { id: 14, part: 'Part V', title: 'Chapter 14: Radiographic and Fluoroscopic Equipment', titleMr: 'प्रकरण १४: एक्स-रे ट्युब रचना, ट्रान्सफॉर्मर, रेक्टिफायर व फ्लोरोस्कोपी', category: 'Technical: Radiophysics & Machine Principles' },
-  { id: 15, part: 'Part V', title: 'Chapter 15: Standards of Performance & Equipment Evaluation', titleMr: 'प्रकरण १५: उपकरणांची कॅलिब्रेशन मानके, Linearity व Reproducibility', category: 'Technical: Radiophysics & Machine Principles' },
-  { id: 16, part: 'Part V', title: 'Chapter 16: Practice Test (860+ ARRT Format Questions)', titleMr: 'प्रकरण १६: संपूर्ण सराव परीक्षा (860+ ARRT बोर्ड पॅटर्न प्रश्न)', category: 'Technical: Radiophysics & Machine Principles' }
-];
 
 export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   questions,
@@ -59,6 +46,8 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedTemplate, setCopiedTemplate] = useState<boolean>(false);
   const [activeBookTab, setActiveBookTab] = useState<'generator' | 'chapters' | 'all'>('chapters');
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(getIsPremiumUnlocked());
+  const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
 
   // Filtered Questions list
   const filteredQuestions = questions.filter(q => {
@@ -213,15 +202,15 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
         <div className="relative z-10 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
             <Award className="w-3.5 h-3.5 text-teal-400" />
-            <span>D.A. Saia Radiography PREP 5th Ed. (860+ ARRT Format Questions)</span>
+            <span>Mr.Shankar Pavhane Radiography Prep (3000+ Questions)</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            D.A. Saia Radiography PREP Book Question Bank
+            Mr.Shankar Pavhane Radiography Prep - संपूर्ण ३० अध्यायांचे वर्गीकरण
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
-            सर्व ५ भाग व १६ प्रकरणांचे (Part I - Part V, Chapters 1-16) ARRT बोर्ड फॉरमॅट मधील ८६०+ प्रश्न व उत्तर स्पष्टीकरणे या अ‍ॅपमध्ये समाविष्ट आहेत. आपण एका क्लिकवर सराव चाचणी सुरू करू शकता किंवा AI द्वारे नवीन प्रश्न जोड किंवा डाउनलोड करू शकता.
+            सार्वजनिक आरोग्य विभाग क्ष-किरण वैज्ञानिक अधिकारी परीक्षेसाठी सर्व ३० प्रकरणांचे (Chapters 1 to 30) ३०००+ सराव प्रश्न व मराठी भाषांतर समाविष्ट आहे. प्रत्येक प्रकरणाचे पहिले १५ प्रश्न विनामूल्य आहेत.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -231,19 +220,11 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
             </div>
 
             <button
-              onClick={handleExportJson}
-              className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-lg shadow-teal-500/20"
-            >
-              <Download className="w-4 h-4 stroke-[2.5]" />
-              <span>डाउनलोड पूर्ण प्रश्नसंच (.JSON Export)</span>
-            </button>
-
-            <button
               onClick={() => onNavigateTab('quiz')}
-              className="flex items-center gap-2 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-lg"
+              className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110 text-slate-950 font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-lg shadow-teal-500/20"
             >
               <BookOpen className="w-4 h-4 stroke-[2.5]" />
-              <span>सराव चाचणी सुरू करा (Start Exam)</span>
+              <span>सराव चाचणी सुरू करा (Start Quiz)</span>
             </button>
           </div>
         </div>
@@ -260,7 +241,7 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>१६ पुस्तकातील प्रकरणे (Book Chapters)</span>
+          <span>३० अभ्यासक्रम प्रकरणे (All 30 Chapters)</span>
         </button>
 
         <button
@@ -303,52 +284,66 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
         </div>
       )}
 
-      {/* TAB 1: SAIA BOOK CHAPTERS INDEX */}
+      {/* TAB 1: ALL 30 CHAPTERS INDEX */}
       {activeBookTab === 'chapters' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-teal-400" />
-              <span>D.A. Saia Radiography PREP - १६ प्रमुख अध्याय index</span>
+              <span>Mr.Shankar Pavhane Radiography Prep - ३० प्रमुख अध्याय अभ्यासक्रम</span>
             </h2>
-            <span className="text-xs text-slate-400">ARRT Board Exam Pattern</span>
+            <span className="text-xs text-amber-300 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+              पहिले १५ प्रश्न मोफत (Free Trial)
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SAIA_CHAPTERS.map((chap) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ALL_30_CHAPTERS.map((chap) => (
               <div 
                 key={chap.id}
-                className="bg-slate-900 border border-slate-800 hover:border-teal-500/50 rounded-2xl p-5 space-y-3 transition-all group"
+                className="bg-slate-900 border border-slate-800 hover:border-teal-500/50 rounded-2xl p-5 space-y-3 transition-all group flex flex-col justify-between shadow-md"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                    {chap.part}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-400">Chapter #{chap.id}</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                      {chap.part}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-slate-400">Chapter #{chap.id}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-teal-300 transition-colors">
+                      {chap.title}
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed font-medium">
+                      {chap.titleMr}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold text-white group-hover:text-teal-300 transition-colors">
-                    {chap.title}
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    {chap.titleMr}
-                  </p>
-                </div>
+                <div className="space-y-2 pt-3 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>विनामूल्य प्रश्न: <strong className="text-emerald-400">{chap.freeQuestionsCount} Qs</strong></span>
+                    <span className="text-amber-300 font-semibold">उर्वरित लॉक 🔒</span>
+                  </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                  <span className="text-[11px] text-slate-400">
-                    Category: <strong className="text-teal-200">{chap.category.split(':')[1] || chap.category}</strong>
-                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onNavigateTab('quiz')}
+                      className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110 text-slate-950 font-bold py-2 px-2 rounded-xl text-xs transition-all"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>सराव चाचणी</span>
+                    </button>
 
-                  <button
-                    onClick={() => handleBulkGenerate(chap.category)}
-                    disabled={isGenerating}
-                    className="flex items-center gap-1.5 text-xs font-bold text-teal-400 hover:text-teal-300 bg-teal-950/60 hover:bg-teal-900/60 px-3 py-1.5 rounded-xl border border-teal-500/30 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+५ AI प्रश्न जोडा</span>
-                  </button>
+                    <button
+                      onClick={() => onNavigateTab('quiz')}
+                      className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold py-2 px-2 rounded-xl text-xs border border-amber-500/30 transition-all"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>माॉक टेस्ट</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -358,123 +353,155 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
 
       {/* TAB 2: AI GENERATOR & FILE IMPORT */}
       {activeBookTab === 'generator' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tool 1: AI Bulk Question Generator */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">१. AI स्वयंचलित प्रश्न जनरेटर (Batch AI)</h2>
-                <p className="text-xs text-slate-400">Gemini AI द्वारे क्ष-किरण व इतर विषयांचे नवीन प्रश्न तयार करा.</p>
-              </div>
+        !isUnlocked ? (
+          /* Locked State for Paid Features */
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto shadow-lg shadow-amber-500/10">
+              <Lock className="w-8 h-8" />
             </div>
 
-            <div className="space-y-4 text-xs text-slate-300">
-              <div>
-                <label className="block font-bold text-slate-200 mb-1">विषय (Category) निवडा</label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-teal-400"
-                >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.nameMr} ({cat.name})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="max-w-xl mx-auto space-y-2">
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block">
+                🔒 प्रीमियम फीचर (Premium Feature Locked)
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                AI स्वयंचलित प्रश्न जनरेटर व JSON फाईल इंपोर्ट
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                AI द्वारे अमर्याद नवीन प्रश्न तयार करणे व स्वतःचे प्रश्नसंच JSON फाईलमधून अपलोड करणे या सुविधा फक्त प्रीमियम एक्टिव्हेटेड वापरकर्त्यांसाठी उपलब्ध आहेत.
+              </p>
+            </div>
 
-              <div>
-                <label className="block font-bold text-slate-200 mb-1">प्रश्नांची संख्या (Batch Size)</label>
-                <div className="grid grid-cols-5 gap-2">
-                  {[5, 10, 25, 50, 100].map((num) => (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => setBatchSize(num)}
-                      className={`py-2 rounded-xl font-bold border text-xs transition-all ${
-                        batchSize === num
-                          ? 'bg-teal-500 text-slate-950 border-teal-400'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                      }`}
-                    >
-                      +{num} Qs
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+            <div className="pt-2">
               <button
-                onClick={() => handleBulkGenerate()}
-                disabled={isGenerating}
-                className="w-full py-3 bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950 font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all"
+                onClick={() => setShowUnlockModal(true)}
+                className="bg-gradient-to-r from-amber-500 via-teal-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black px-8 py-3.5 rounded-2xl text-sm inline-flex items-center gap-2 shadow-xl shadow-amber-500/20 transition-all transform hover:-translate-y-0.5"
               >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>प्रक्रिया सुरू आहे... (Generating {batchSize} Qs)</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>+{batchSize} नवीन द्विभाषिक प्रश्न तयार करा</span>
-                  </>
-                )}
+                <Key className="w-4 h-4 stroke-[2.5]" />
+                <span>प्रीमियम व्हर्जन एक्टिव्हेट करा (Unlock Paid Features)</span>
               </button>
             </div>
           </div>
-
-          {/* Tool 2: Bulk JSON Import & Format Download */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
-                <Upload className="w-5 h-5" />
+        ) : (
+          /* Unlocked Paid Tools */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Tool 1: AI Bulk Question Generator */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">१. AI स्वयंचलित प्रश्न जनरेटर (Batch AI)</h2>
+                  <p className="text-xs text-slate-400">Gemini AI द्वारे क्ष-किरण व इतर विषयांचे नवीन प्रश्न तयार करा.</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">२. फायलींमधून प्रश्न आयात करा (Import JSON)</h2>
-                <p className="text-xs text-slate-400">तयार केलेल्या २०००-३००० प्रश्नांची फाईल एका क्लिकवर जोडा.</p>
+
+              <div className="space-y-4 text-xs text-slate-300">
+                <div>
+                  <label className="block font-bold text-slate-200 mb-1">विषय (Category) निवडा</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-teal-400"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.name} value={cat.name}>
+                        {cat.nameMr} ({cat.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-200 mb-1">प्रश्नांची संख्या (Batch Size)</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[5, 10, 25, 50, 100].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setBatchSize(num)}
+                        className={`py-2 rounded-xl font-bold border text-xs transition-all ${
+                          batchSize === num
+                            ? 'bg-teal-500 text-slate-950 border-teal-400'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        +{num} Qs
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleBulkGenerate()}
+                  disabled={isGenerating}
+                  className="w-full py-3 bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950 font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all"
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>प्रक्रिया सुरू आहे... (Generating {batchSize} Qs)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                      <span>+{batchSize} नवीन द्विभाषिक प्रश्न तयार करा</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
-            <div className="space-y-4 text-xs text-slate-300">
-              <div className="border-2 border-dashed border-slate-700 hover:border-teal-400 rounded-2xl p-6 text-center space-y-3 transition-colors bg-slate-950/50">
-                <FileJson className="w-8 h-8 text-cyan-400 mx-auto" />
-                <div>
-                  <p className="font-bold text-white">JSON फाईल निवडा किंवा ड्रॅग करा</p>
-                  <p className="text-[11px] text-slate-400">(.json फॉरमॅट सपोर्टेड - unlimited questions)</p>
+            {/* Tool 2: Bulk JSON Import */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+                  <Upload className="w-5 h-5" />
                 </div>
-                <label className="inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold rounded-xl cursor-pointer border border-slate-700 hover:border-teal-400/50 transition-all">
-                  <span>Browse File</span>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
+                <div>
+                  <h2 className="text-lg font-bold text-white">२. फायलींमधून प्रश्न आयात करा (Import JSON)</h2>
+                  <p className="text-xs text-slate-400">तयार केलेल्या २०००-३००० प्रश्नांची फाईल एका क्लिकवर जोडा.</p>
+                </div>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-300">मानक JSON फॉरमॅट टेम्पलेट (Schema):</span>
-                  <button
-                    onClick={handleCopyTemplate}
-                    className="flex items-center gap-1 text-[11px] font-bold text-teal-400 hover:text-teal-300"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>{copiedTemplate ? 'Copied!' : 'Copy Schema'}</span>
-                  </button>
+              <div className="space-y-4 text-xs text-slate-300">
+                <div className="border-2 border-dashed border-slate-700 hover:border-teal-400 rounded-2xl p-6 text-center space-y-3 transition-colors bg-slate-950/50">
+                  <FileJson className="w-8 h-8 text-cyan-400 mx-auto" />
+                  <div>
+                    <p className="font-bold text-white">JSON फाईल निवडा किंवा ड्रॅग करा</p>
+                    <p className="text-[11px] text-slate-400">(.json फॉरमॅट सपोर्टेड - unlimited questions)</p>
+                  </div>
+                  <label className="inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold rounded-xl cursor-pointer border border-slate-700 hover:border-teal-400/50 transition-all">
+                    <span>Browse File</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
-                <pre className="text-[10px] text-teal-300/90 font-mono bg-slate-900 p-2.5 rounded-lg overflow-x-auto max-h-28 border border-slate-850">
-                  {sampleJsonTemplate}
-                </pre>
+
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-300">मानक JSON फॉरमॅट टेम्पलेट (Schema):</span>
+                    <button
+                      onClick={handleCopyTemplate}
+                      className="flex items-center gap-1 text-[11px] font-bold text-teal-400 hover:text-teal-300"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedTemplate ? 'Copied!' : 'Copy Schema'}</span>
+                    </button>
+                  </div>
+                  <pre className="text-[10px] text-teal-300/90 font-mono bg-slate-900 p-2.5 rounded-lg overflow-x-auto max-h-28 border border-slate-850">
+                    {sampleJsonTemplate}
+                  </pre>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* TAB 3: SEARCH & INSPECTION TABLE */}
@@ -533,6 +560,17 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* PREMIUM UNLOCK MODAL */}
+      {showUnlockModal && (
+        <PremiumUnlockModal
+          onClose={() => setShowUnlockModal(false)}
+          onSuccessUnlock={() => {
+            setIsUnlocked(true);
+            setShowUnlockModal(false);
+          }}
+        />
       )}
     </div>
   );

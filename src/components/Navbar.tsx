@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   BookOpen, 
@@ -12,9 +12,13 @@ import {
   UserCheck,
   PhoneCall,
   Info,
-  Database
+  Database,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { LanguageMode } from '../types';
+import { getIsPremiumUnlocked } from '../lib/storage';
+import { PremiumUnlockModal } from './PremiumUnlockModal';
 
 interface NavbarProps {
   activeTab: string;
@@ -40,12 +44,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAddModal,
 }) => {
   const [showDevModal, setShowDevModal] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  useEffect(() => {
+    setIsUnlocked(getIsPremiumUnlocked());
+  }, []);
+
+  const refreshUnlockState = () => {
+    setIsUnlocked(getIsPremiumUnlocked());
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'quiz', label: 'Practice Quiz', icon: BookOpen },
     { id: 'categories', label: 'Categories', icon: Layers },
-    { id: 'question-bank', label: '२०००+ प्रश्न बँक', icon: Database, badge: totalQuestionsCount },
+    { id: 'question-bank', label: '३०००+ प्रश्न बँक', icon: Database, badge: totalQuestionsCount },
     { id: 'flashcards', label: 'Flashcards', icon: Sparkles },
     { id: 'bookmarks', label: 'Saved Questions', icon: Bookmark, badge: bookmarkedCount },
   ];
@@ -59,22 +73,44 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="px-2 py-0.5 rounded bg-teal-500/20 text-teal-200 text-[11px] font-bold border border-teal-500/30">
               महाराष्ट्र शासन - आरोग्य विभाग गट 'क'
             </span>
-            <span className="hidden sm:inline text-slate-300">
-              क्ष-किरण वैज्ञानिक अधिकारी (X-Ray Scientific Officer Exam)
+            <span className="hidden sm:inline text-slate-300 font-semibold">
+              Mr.Shankar Pavhane Radiography Prep
             </span>
             <span className="text-amber-300 font-bold hidden md:inline">
-              • २०० गुण (100 Qs)
+              • ३०००+ प्रश्नसंच (२०० गुण)
             </span>
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
+            {/* Premium Unlock Badge / Trigger Button */}
+            <button
+              onClick={() => setShowUnlockModal(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all ${
+                isUnlocked
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 animate-pulse'
+              }`}
+            >
+              {isUnlocked ? (
+                <>
+                  <Unlock className="w-3 h-3 text-emerald-400" />
+                  <span>प्रीमियम एक्टिव्ह (Unlocked)</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span>प्रीमियम व्हर्जन अनलॉक करा 🔒</span>
+                </>
+              )}
+            </button>
+
             {/* Developer Credit pill button */}
             <button 
               onClick={() => setShowDevModal(true)}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-teal-400/50 transition-all text-[11px]"
             >
               <UserCheck className="w-3 h-3 text-teal-400" />
-              <span>Prepared By: <strong className="text-teal-300 font-semibold">श्री शंकर पव्हणे</strong></span>
+              <span>मार्गदर्शक: <strong className="text-teal-300 font-semibold">श्री शंकर पव्हणे</strong></span>
               <Info className="w-3 h-3 text-slate-400" />
             </button>
 
@@ -125,12 +161,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white tracking-tight">X-Ray Scientific Officer</span>
-                <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full">
-                  PREP 2026
+                <span className="font-extrabold text-base sm:text-lg text-white tracking-tight">
+                  Mr.Shankar Pavhane Radiography Prep
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full hidden sm:inline">
+                  3000+ Qs
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">सार्वजनिक आरोग्य विभाग - जिल्हा रुग्णालय गडचिरोली</p>
+              <p className="text-xs text-slate-400 hidden sm:block">सार्वजनिक आरोग्य विभाग - क्ष-किरण वैज्ञानिक अधिकारी</p>
             </div>
           </div>
 
@@ -235,7 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="space-y-3 text-sm text-slate-300 bg-slate-850 p-4 rounded-xl border border-slate-800">
               <p className="text-xs text-teal-200 font-semibold uppercase tracking-wider">परीक्षा पोर्टल माहिती व मार्गदर्शन</p>
               <p className="text-xs leading-relaxed">
-                सार्वजनिक आरोग्य विभाग (महाराष्ट्र शासन) गट 'क' पद भरतीसाठी क्ष-किरण वैज्ञानिक अधिकारी पदाचा संपूर्ण अभ्यासक्रम (Syllabus) व प्रश्नसंच मराठी भाषांतरासह विकसित केला आहे.
+                सार्वजनिक आरोग्य विभाग (महाराष्ट्र शासन) गट 'क' पद भरतीसाठी क्ष-किरण वैज्ञानिक अधिकारी पदाचा संपूर्ण अभ्यासक्रम (Syllabus) व ३०००+ प्रश्नसंच मराठी भाषांतरासह विकसित केला आहे.
               </p>
               <div className="pt-2 border-t border-slate-800 space-y-2">
                 <div className="flex items-center gap-2 text-slate-200 text-xs">
@@ -257,6 +295,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Premium Unlock Modal */}
+      {showUnlockModal && (
+        <PremiumUnlockModal
+          onClose={() => setShowUnlockModal(false)}
+          onSuccessUnlock={refreshUnlockState}
+        />
       )}
     </header>
   );

@@ -6,6 +6,24 @@ const STORAGE_KEYS = {
   SESSIONS: 'xray_prep_sessions',
   CUSTOM_QUESTIONS: 'xray_prep_custom_questions',
   FLASHCARD_CONFIDENCE: 'xray_prep_flashcard_confidence',
+  PREMIUM_UNLOCKED: 'xray_prep_premium_unlocked',
+};
+
+export const getIsPremiumUnlocked = (): boolean => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.PREMIUM_UNLOCKED) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const setPremiumUnlocked = (unlocked: boolean = true): boolean => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PREMIUM_UNLOCKED, unlocked ? 'true' : 'false');
+    return unlocked;
+  } catch {
+    return false;
+  }
 };
 
 export const getBookmarks = (): QuestionBookmark[] => {
