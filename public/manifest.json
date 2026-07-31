@@ -1,16 +1,22 @@
 {
   "short_name": "XRay MCQs",
   "name": "X-Ray Scientific Officer Prep (XRay MCQs)",
-  "description": "Mr. Shankar Pavhane Radiography Exam Prep App - 3000+ MCQs & 30 Chapters for Health Department Exam",
+  "description": "Mr. Shankar Pavhane Radiography Exam Prep App - 3000+ MCQs & 30 Chapters",
   "icons": [
     {
-      "src": "pwa-192x192.png",
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512 192x192 128x128 64x64",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-192x192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "pwa-512x512.png",
+      "src": "/pwa-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"

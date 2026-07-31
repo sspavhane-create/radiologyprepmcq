@@ -10,7 +10,9 @@ import {
   PlusSquare, 
   ShieldCheck, 
   Zap,
-  ArrowRight
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface InstallAppModalProps {
@@ -27,6 +29,9 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const currentUrl = window.location.href;
 
   useEffect(() => {
     // Detect iOS
@@ -38,6 +43,8 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
       setInstalled(true);
     }
   }, []);
+
+  const [showManualNotice, setShowManualNotice] = useState(false);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -55,12 +62,24 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
         setInstalling(false);
       }
     } else {
-      // If browser doesn't support automatic prompt or it's already fired
+      // Open link in real browser tab outside iframe so Chrome PWA triggers natively
       setInstalling(true);
+      setShowManualNotice(true);
+      try {
+        window.open(currentUrl, '_blank');
+      } catch (e) {
+        console.warn('Failed to open new window:', e);
+      }
       setTimeout(() => {
         setInstalling(false);
-      }, 1200);
+      }, 600);
     }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(currentUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -76,9 +95,9 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-base sm:text-lg font-black text-white">X-Ray Prep Mobile App</h2>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 rounded-full">PWA</span>
+                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 rounded-full">PWA App</span>
               </div>
-              <p className="text-[11px] text-teal-400 font-bold">डायरेक्ट मोबाईलमध्ये इन्स्टॉल करा</p>
+              <p className="text-[11px] text-teal-400 font-bold">मोबाईलमध्ये ॲपसारखे चालवा</p>
             </div>
           </div>
           <button 
@@ -141,7 +160,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                 {installing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                    <span>ॲप डाऊनलोड/इन्स्टॉल होत आहे...</span>
+                    <span>इन्स्टॉलेशन तपासत आहे...</span>
                   </>
                 ) : (
                   <>
@@ -151,24 +170,58 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                 )}
               </button>
 
+              {showManualNotice && (
+                <div className="p-3 bg-amber-950/80 border border-amber-500/50 rounded-xl text-amber-200 text-xs space-y-1 animate-fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-300">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>नवी विंडोज/ब्राऊझर टॅब उघडली आहे!</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    सिक्युरिटी कारणास्तव हे ॲप तुमच्या मूळ Chrome / Safari ब्राऊझरमध्ये उघडले गेले आहे. आता ब्राऊझरच्या <strong>Menu (⋮)</strong> वर क्लिक करून <strong>"Install App"</strong> किंवा <strong>"Add to Home Screen"</strong> वर क्लिक करा.
+                  </p>
+                </div>
+              )}
+
+              {/* Open in Chrome button if in WebView/Iframe */}
+              <div className="pt-1">
+                <a
+                  href={currentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-cyan-300 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Chrome / Safari ब्राऊझरमध्ये उघडा (Open in Browser)</span>
+                </a>
+              </div>
+
               {/* Instructions Guide based on device */}
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2 text-xs">
-                <div className="flex items-center gap-1.5 text-teal-300 font-bold border-b border-slate-800 pb-1.5">
-                  <Smartphone className="w-4 h-4 text-cyan-400" />
-                  <span>इन्स्टॉल कसे करावे? (Manual Instructions)</span>
+              <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-teal-300 font-bold flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-cyan-400" />
+                    इन्स्टॉल स्टेप्स (3 सोप्या पायऱ्या):
+                  </span>
+                  <button
+                    onClick={handleCopyLink}
+                    className="text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-800"
+                  >
+                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copied ? 'लिंक कॉपी झाली!' : 'लिंक कॉपी करा'}</span>
+                  </button>
                 </div>
 
                 {isIOS ? (
-                  <ol className="space-y-1.5 text-slate-300 text-[11px] list-decimal pl-4">
-                    <li>खालील <strong>Share (<Share2 className="w-3 h-3 inline text-cyan-400" />)</strong> बटणावर क्लिक करा.</li>
-                    <li>खाली स्क्रोल करून <strong>"Add to Home Screen" (<PlusSquare className="w-3 h-3 inline text-emerald-400" />)</strong> निवडा.</li>
-                    <li>वरच्या उजव्या बाजूला <strong>"Add"</strong> वर क्लिक करा.</li>
+                  <ol className="space-y-2 text-slate-300 text-[11px] list-decimal pl-4 leading-relaxed">
+                    <li>खालील <strong>Share (<Share2 className="w-3.5 h-3.5 inline text-cyan-400" />)</strong> बटणावर क्लिक करा.</li>
+                    <li>खाली स्क्रोल करून <strong>"Add to Home Screen" (<PlusSquare className="w-3.5 h-3.5 inline text-emerald-400" />)</strong> निवडा.</li>
+                    <li>वरच्या उजव्या बाजूला <strong>"Add"</strong> करा — मोबाईलवर ॲप तयार होईल!</li>
                   </ol>
                 ) : (
-                  <ol className="space-y-1.5 text-slate-300 text-[11px] list-decimal pl-4">
+                  <ol className="space-y-2 text-slate-300 text-[11px] list-decimal pl-4 leading-relaxed">
                     <li>वरच्या <strong>इन्स्टॉल करा</strong> बटणावर क्लिक करा.</li>
-                    <li>काही फोनमध्ये ब्राऊझरचे <strong>तीन ठिपके (⋮) (<MoreVertical className="w-3 h-3 inline text-amber-400" />)</strong> वर क्लिक करा.</li>
-                    <li><strong>"Install App"</strong> किंवा <strong>"Add to Home screen"</strong> निवडा.</li>
+                    <li>किंवा Chrome ब्राऊझरचे <strong>तीन ठिपके (⋮) (<MoreVertical className="w-3.5 h-3.5 inline text-amber-400" />)</strong> दाबा.</li>
+                    <li>तिथे <strong>"Install App"</strong> किंवा <strong>"Add to Home screen"</strong> वर क्लिक करा.</li>
                   </ol>
                 )}
               </div>
@@ -176,7 +229,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
           )}
 
           <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-            हे ॲप डाऊनलोड केल्याने प्ले स्टोअरशिवाय तुमच्या मोबाईल स्क्रीनवर डायरेक्ट आयकॉन तयार होईल व एका क्लिकवर सुरू होईल.
+            हे PWA App प्ले स्टोअरशिवाय तुमच्या मोबाईलवर थेट ॲपसारखे चालते व स्क्रीनवर शॉर्टकट तयार होतो.
           </p>
         </div>
 
@@ -184,7 +237,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
         <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between shrink-0 text-xs">
           <span className="text-[10px] text-teal-400 font-mono flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            Play Protect Safe
+            Play Protect Safe PWA
           </span>
           <button
             type="button"
