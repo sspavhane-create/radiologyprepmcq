@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { Question, QuizSession } from '../types';
 import { ALL_30_CHAPTERS, ChapterItem } from '../data/chaptersData';
 import { 
+  getIsPremiumUnlocked, 
+  getRevealedAnswerIds, 
+  addRevealedAnswerId 
+} from '../lib/storage';
+import { PremiumUnlockModal } from './PremiumUnlockModal';
+import { 
   HeartPulse, 
   ShieldCheck, 
   Syringe, 
@@ -50,6 +56,80 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const [selectedChapterId, setSelectedChapterId] = useState<number | null>(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedChapterId, setExpandedChapterId] = useState<number | null>(1);
+
+  // Premium & Revealed Answers State
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [revealedIds, setRevealedIds] = useState<number[]>([]);
+  const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
+  const [modalMessage, setModalMessage] = useState<string | undefined>(undefined);
+  const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({});
+
+  React.useEffect(() => {
+    setIsUnlocked(getIsPremiumUnlocked());
+    setRevealedIds(getRevealedAnswerIds());
+  }, []);
+
+  const refreshPremiumState = () => {
+    setIsUnlocked(getIsPremiumUnlocked());
+    setRevealedIds(getRevealedAnswerIds());
+  };
+
+  const FREE_LIMIT = 40;
+  const revealedCount = revealedIds.length;
+
+  const handleToggleAnswerCategory = (questionId: number) => {
+    const isAlreadyRevealed = revealedIds.includes(questionId);
+    const isExpanded = !!expandedCards[questionId];
+
+    if (isExpanded) {
+      setExpandedCards(prev => ({ ...prev, [questionId]: false }));
+      return;
+    }
+
+    if (isUnlocked) {
+      if (!isAlreadyRevealed) {
+        const updated = addRevealedAnswerId(questionId);
+        setRevealedIds(updated);
+      }
+      setExpandedCards(prev => ({ ...prev, [questionId]: true }));
+      return;
+    }
+
+    if (questionId > 40) {
+      setModalMessage(
+        `प्रश्न क्र. ४० च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
+      );
+      setShowUnlockModal(true);
+      return;
+    }
+
+    if (isAlreadyRevealed) {
+      setExpandedCards(prev => ({ ...prev, [questionId]: true }));
+      return;
+    }
+
+    if (revealedCount < FREE_LIMIT) {
+      const updated = addRevealedAnswerId(questionId);
+      setRevealedIds(updated);
+      setExpandedCards(prev => ({ ...prev, [questionId]: true }));
+    } else {
+      setModalMessage(
+        `तुम्ही विनामूल्य ४० प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+      );
+      setShowUnlockModal(true);
+    }
+  };
+
+  const handleSelectChapterQuestion = (qId: number) => {
+    if (!isUnlocked && qId > 40) {
+      setModalMessage(
+        `प्रश्न क्र. ४० च्या पुढील (Q#${qId}) सर्व प्रश्नांची उत्तरे व सराव अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+      );
+      setShowUnlockModal(true);
+      return;
+    }
+    onSelectQuestionDirect(qId);
+  };
 
   // Auto switch portion if a non-technical category is selected
   React.useEffect(() => {
@@ -505,12 +585,22 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                           chapterQs.map((q) => (
                             <div
                               key={q.id}
-                              onClick={() => onSelectQuestionDirect(q.id)}
+                              onClick={() => handleSelectChapterQuestion(q.id)}
                               className="bg-slate-950 hover:bg-slate-800 p-2.5 rounded-xl border border-slate-800 hover:border-teal-500/40 cursor-pointer text-left transition-all space-y-1"
                             >
                               <div className="flex items-center justify-between text-[10px] font-bold text-teal-400">
                                 <span>#Q{q.id}</span>
-                                <span className="text-emerald-400">{q.correct_answer_mr || q.correct_answer}</span>
+                                {isUnlocked || q.id <= 40 ? (
+                                  <span className="text-teal-300 font-semibold flex items-center gap-1">
+                                    <Eye className="w-3 h-3 text-teal-400" />
+                                    <span>उत्तर गुप्त (सराव करा)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                                    <Lock className="w-3 h-3 text-amber-400" />
+                                    <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
+                                  </span>
+                                )}
                               </div>
                               <p className="text-xs text-slate-200 line-clamp-2">
                                 {q.question_mr || q.question}
@@ -607,10 +697,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               <span>उपलब्ध प्रश्न यादी ({questions.length} / {questions.length})</span>
             </div>
             <h2 className="text-lg font-black text-white tracking-tight">
-              आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा. सर्व प्रश्न यादी (Search & Inspect)
+              आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा - सर्व प्रश्न यादी (Search & Inspect)
             </h2>
             <p className="text-xs text-slate-400">
-              सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा.
+              सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य ४० प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
             </p>
           </div>
 
@@ -626,42 +716,156 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           </div>
         </div>
 
-        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
           {searchFilteredQuestions.length > 0 ? (
-            searchFilteredQuestions.map((q) => (
-              <div
-                key={q.id}
-                onClick={() => onSelectQuestionDirect(q.id)}
-                className="cursor-pointer bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-teal-500/60 p-4 rounded-2xl transition-all space-y-2 group shadow-md"
-              >
-                <div className="flex items-center justify-between text-xs font-bold text-teal-400">
-                  <span className="font-mono bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
-                    Q#{q.id} • {q.category.split(':')[0]}
-                  </span>
-                  <span className="group-hover:underline text-teal-300 font-extrabold text-xs flex items-center gap-1">
-                    <span>थेट सराव करा</span>
-                    <Play className="w-3 h-3 fill-teal-300" />
-                  </span>
-                </div>
+            searchFilteredQuestions.slice(0, 50).map((q) => {
+              const isAnswerRevealed = revealedIds.includes(q.id);
+              const isExpanded = !!expandedCards[q.id];
+              const isShowContent = isAnswerRevealed && isExpanded;
 
-                <p className="text-xs sm:text-sm font-semibold text-slate-100 group-hover:text-teal-200 transition-colors leading-relaxed">
-                  {q.question_mr || q.question}
-                </p>
+              return (
+                <div
+                  key={q.id}
+                  className={`bg-slate-950 border p-4 rounded-2xl transition-all space-y-3 shadow-md ${
+                    isShowContent
+                      ? 'border-emerald-500/40 bg-slate-900 ring-1 ring-emerald-500/20'
+                      : 'border-slate-800 hover:border-teal-500/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs font-bold text-teal-400">
+                    <span className="font-mono bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                      Q#{q.id} • {q.category.split(':')[0]}
+                    </span>
+                    {isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                      <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>उत्तर उघडले (Revealed)</span>
+                      </span>
+                    ) : !isUnlocked && q.id > 40 ? (
+                      <span className="text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                        उत्तर गुप्त (Answer Hidden)
+                      </span>
+                    )}
+                  </div>
 
-                {q.question_mr && q.question && (
-                  <p className="text-xs text-slate-400 italic">
-                    {q.question}
+                  <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed">
+                    {q.question_mr || q.question}
                   </p>
-                )}
 
-                <div className="flex items-center gap-2 pt-1 text-xs">
-                  <span className="text-slate-400 font-medium">योग्य उत्तर:</span>
-                  <span className="text-emerald-400 font-extrabold bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
-                    {q.correct_answer_mr || q.correct_answer}
-                  </span>
+                  {q.question_mr && q.question && (
+                    <p className="text-xs text-slate-400 italic">
+                      {q.question}
+                    </p>
+                  )}
+
+                  {/* Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                    {q.options.map((opt, optIdx) => {
+                      const optMr = q.options_mr ? q.options_mr[optIdx] : undefined;
+                      const isCorrect = isShowContent && (
+                        opt === q.correct_answer ||
+                        (q.correct_answer_mr && optMr === q.correct_answer_mr) ||
+                        opt.startsWith(q.correct_answer.slice(0, 3))
+                      );
+
+                      return (
+                        <div
+                          key={optIdx}
+                          className={`p-2.5 rounded-xl border text-xs transition-all ${
+                            isCorrect
+                              ? 'bg-emerald-950/80 border-emerald-500 text-emerald-100 font-bold shadow-md'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                              isCorrect ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {String.fromCharCode(65 + optIdx)}
+                            </div>
+                            <div>
+                              {optMr && <p className={isCorrect ? 'text-emerald-200 font-bold' : 'text-slate-200'}>{optMr}</p>}
+                              <p className={optMr ? 'text-[10px] text-slate-400' : 'text-slate-300'}>{opt}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+                    <button
+                      onClick={() => handleToggleAnswerCategory(q.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
+                        isShowContent && (isUnlocked || q.id <= 40)
+                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                          : isAnswerRevealed && (isUnlocked || q.id <= 40)
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : !isUnlocked && (q.id > 40 || revealedCount >= FREE_LIMIT)
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              : 'bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950'
+                      }`}
+                    >
+                      {isShowContent && (isUnlocked || q.id <= 40) ? (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                          <span>उत्तर लपवा</span>
+                        </>
+                      ) : isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                        <>
+                          <ChevronDown className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>उत्तर पुन्हा पहा</span>
+                        </>
+                      ) : !isUnlocked && q.id > 40 ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>उत्तर व स्पष्टीकरण पहा 🔒 (प्रीमियम आवश्यक)</span>
+                        </>
+                      ) : !isUnlocked && revealedCount >= FREE_LIMIT ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>उत्तर व स्पष्टीकरण पहा 🔒 (मर्यादा संपली)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>उत्तर व स्पष्टीकरण पहा</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleSelectChapterQuestion(q.id)}
+                      className="flex items-center gap-1 text-xs text-teal-300 hover:text-teal-200 font-extrabold bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-xl border border-teal-500/30"
+                    >
+                      <span>थेट सराव करा</span>
+                      <Play className="w-3 h-3 fill-teal-300" />
+                    </button>
+                  </div>
+
+                  {/* Answer & Explanation Box */}
+                  {isShowContent && (isUnlocked || q.id <= 40) && (
+                    <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 space-y-2 animate-fade-in text-xs">
+                      <div className="text-emerald-200 font-bold">
+                        बरोबर उत्तर: {q.correct_answer_mr || q.correct_answer}
+                      </div>
+                      {q.explanation_mr && (
+                        <p className="text-slate-200 font-medium">{q.explanation_mr}</p>
+                      )}
+                      {q.explanation && (
+                        <p className="text-slate-400 italic">{q.explanation}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-center text-xs text-slate-400 py-8">
               काहीही जुळणारे प्रश्न सापडले नाहीत. शोध शब्द तपासा.
@@ -669,6 +873,15 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* PREMIUM UNLOCK MODAL */}
+      {showUnlockModal && (
+        <PremiumUnlockModal
+          onClose={() => setShowUnlockModal(false)}
+          onSuccessUnlock={refreshPremiumState}
+          customMessage={modalMessage}
+        />
+      )}
     </div>
   );
 };

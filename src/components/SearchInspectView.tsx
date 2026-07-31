@@ -131,9 +131,8 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
       return;
     }
 
-    // Attempting to reveal
-    if (isAlreadyRevealed || isUnlocked) {
-      // Already revealed or premium -> expand
+    // If Premium is unlocked, allow all questions
+    if (isUnlocked) {
       if (!isAlreadyRevealed) {
         const updated = addRevealedAnswerId(questionId);
         setRevealedIds(updated);
@@ -142,7 +141,22 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
       return;
     }
 
-    // Check 40 Questions Limit
+    // Premium Protection: Question ID > 40 is strictly locked for free users
+    if (questionId > 40) {
+      setModalMessage(
+        `प्रश्न क्र. ४० च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
+      );
+      setShowUnlockModal(true);
+      return;
+    }
+
+    // If already revealed (Q <= 40)
+    if (isAlreadyRevealed) {
+      setExpandedCards(prev => ({ ...prev, [questionId]: true }));
+      return;
+    }
+
+    // Check 40 Questions Limit for free version
     if (revealedCount < FREE_LIMIT) {
       // Allow reveal
       const updated = addRevealedAnswerId(questionId);
@@ -201,11 +215,11 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            सर्व ३० अध्यायांमधील ३०००+ प्रश्नांची यादी (Search & Inspect)
+            आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा - सर्व प्रश्न यादी (Search & Inspect)
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
-            येथे सर्व ३० प्रकरणांमधील प्रश्न शोधू शकता. <strong>फक्त प्रश्न प्रदर्शित केले आहेत.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> वर क्लिक करा. (विनामूल्य ४० प्रश्नांपर्यंत उत्तरे दिसतील, त्यानंतर प्रीमियम व्हर्जन अनलॉक करा).
+            सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य ४० प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
           </p>
 
           {/* 40 Limit Meter Banner */}
@@ -213,13 +227,13 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="flex items-center gap-2 text-slate-200">
                 <Eye className="w-4 h-4 text-teal-400" />
-                <span>उत्तर तपासणी मर्यादा (Free Answer Reveal Tracker):</span>
+                <span>उत्तर तपासणी मर्यादा (Free Answer Reveal Limit):</span>
               </span>
               {isUnlocked ? (
-                <span className="text-emerald-400 font-extrabold">अमर्याद ३०००+ प्रश्न (Unlocked)</span>
+                <span className="text-emerald-400 font-extrabold">अमर्याद ३०००+ प्रश्न (Premium Unlocked)</span>
               ) : (
                 <span className={revealedCount >= FREE_LIMIT ? 'text-rose-400 font-black' : 'text-amber-300 font-bold'}>
-                  {revealedCount} / {FREE_LIMIT} प्रश्न वापरले ({FREE_LIMIT - revealedCount} शिलु्लक)
+                  {revealedCount} / {FREE_LIMIT} प्रश्न वापरले ({FREE_LIMIT - revealedCount} शिल्लक)
                 </span>
               )}
             </div>
@@ -392,10 +406,15 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 text-xs">
-                    {isAnswerRevealed ? (
+                    {isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
                       <span className="flex items-center gap-1 text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>उत्तर उघडले (Revealed)</span>
+                      </span>
+                    ) : !isUnlocked && q.id > 40 ? (
+                      <span className="flex items-center gap-1 text-amber-300 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
                       </span>
                     ) : (
                       <span className="text-slate-400 font-medium bg-slate-950 px-2.5 py-0.5 rounded-full border border-slate-800">
@@ -459,29 +478,34 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                   <button
                     onClick={() => handleToggleAnswer(q.id)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md ${
-                      isShowContent
+                      isShowContent && (isUnlocked || q.id <= 40)
                         ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                        : isAnswerRevealed
+                        : isAnswerRevealed && (isUnlocked || q.id <= 40)
                           ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40'
-                          : !isUnlocked && revealedCount >= FREE_LIMIT
+                          : !isUnlocked && (q.id > 40 || revealedCount >= FREE_LIMIT)
                             ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40'
                             : 'bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950'
                     }`}
                   >
-                    {isShowContent ? (
+                    {isShowContent && (isUnlocked || q.id <= 40) ? (
                       <>
                         <ChevronUp className="w-4 h-4" />
                         <span>उत्तर व स्पष्टीकरण लपवा (Hide Explanation)</span>
                       </>
-                    ) : isAnswerRevealed ? (
+                    ) : isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
                       <>
                         <ChevronDown className="w-4 h-4 text-emerald-400" />
                         <span>उत्तर व स्पष्टीकरण पुन्हा पहा (Show Explanation)</span>
                       </>
-                    ) : !isUnlocked && revealedCount >= FREE_LIMIT ? (
+                    ) : !isUnlocked && q.id > 40 ? (
                       <>
                         <Lock className="w-4 h-4 text-amber-400" />
                         <span>उत्तर व स्पष्टीकरण पहा 🔒 (प्रीमियम आवश्यक)</span>
+                      </>
+                    ) : !isUnlocked && revealedCount >= FREE_LIMIT ? (
+                      <>
+                        <Lock className="w-4 h-4 text-amber-400" />
+                        <span>उत्तर व स्पष्टीकरण पहा 🔒 (मर्यादा संपली - प्रीमियम आवश्यक)</span>
                       </>
                     ) : (
                       <>
