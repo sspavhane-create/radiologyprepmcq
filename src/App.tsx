@@ -8,8 +8,20 @@ import {
   toggleBookmark as toggleBookmarkStorage, 
   saveCustomQuestion,
   getFlashcardConfidence,
-  setFlashcardConfidence as setConfidenceStorage
+  setFlashcardConfidence as setConfidenceStorage,
+  getIsPremiumUnlocked
 } from './lib/storage';
+import { 
+  auth, 
+  onAuthStateChanged, 
+  signOut, 
+  getDeviceId, 
+  getUserProfile, 
+  subscribeToDeviceSession, 
+  UserProfile, 
+  User as FirebaseUser,
+  registerUserDeviceAndLogin
+} from './lib/firebase';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { QuizView } from './components/QuizView';
@@ -20,6 +32,9 @@ import { ResultSummary } from './components/ResultSummary';
 import { AITutorModal } from './components/AITutorModal';
 import { AddQuestionModal } from './components/AddQuestionModal';
 import { QuestionBankGenerator } from './components/QuestionBankGenerator';
+import { AuthModal } from './components/AuthModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
+import { ShieldAlert, LogOut } from 'lucide-react';
 
 export default function App() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -30,6 +45,16 @@ export default function App() {
   
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+
+  // Firebase Auth & Firestore Profile State
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+
+  // Modals & Device Alert State
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
+  const [deviceMismatchAlert, setDeviceMismatchAlert] = useState<boolean>(false);
 
   const handleSelectCategoryForChapters = (catName: string) => {
     setSelectedCategoryFilter(catName);
@@ -61,6 +86,70 @@ export default function App() {
     setBookmarks(getBookmarks());
     setConfidenceRatings(getFlashcardConfidence());
   }, []);
+
+  // Firebase Auth Listener & Firestore Device Session Monitor
+  useEffect(() => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // Clear previous snapshot listener if any
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
+      setFirebaseUser(user);
+      if (user) {
+        const currentDeviceId = getDeviceId();
+        
+        try {
+          // Fetch or create user profile in Firestore
+          const profile = await registerUserDeviceAndLogin(user, currentDeviceId);
+          setUserProfile(profile);
+          setIsUnlocked(profile.isPremium);
+
+          // Listen to Firestore real-time profile changes for single device enforcement
+          unsubscribeSnapshot = subscribeToDeviceSession(
+            user.uid,
+            currentDeviceId,
+            () => {
+              // Device mismatch detected! Logout user immediately.
+              setDeviceMismatchAlert(true);
+              signOut(auth);
+              setFirebaseUser(null);
+              setUserProfile(null);
+              setIsUnlocked(false);
+            },
+            (updatedProfile) => {
+              setUserProfile(updatedProfile);
+              // Firestore is the sole source of truth for premium status!
+              setIsUnlocked(updatedProfile.isPremium);
+            }
+          );
+        } catch (err) {
+          console.error('Error in auth state change processing:', err);
+        }
+      } else {
+        setUserProfile(null);
+        // Fallback to local storage if not authenticated
+        setIsUnlocked(getIsPremiumUnlocked());
+      }
+    });
+
+    return () => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+      unsubscribeAuth();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setFirebaseUser(null);
+    setUserProfile(null);
+    setIsUnlocked(getIsPremiumUnlocked());
+  };
 
   // Compute stats
   let totalAttempted = 0;
@@ -226,7 +315,30 @@ export default function App() {
         accuracyRate={accuracyRate}
         streakDays={quizSessions.length > 0 ? Math.min(quizSessions.length, 7) : 1}
         onOpenAddModal={() => setIsAddModalOpen(true)}
+        userProfile={userProfile}
+        isUnlocked={isUnlocked}
+        onOpenAuthModal={() => setShowAuthModal(true)}
+        onOpenAdminPanel={() => setShowAdminPanel(true)}
+        onLogout={handleLogout}
       />
+
+      {/* Device Mismatch Auto-Signout Notification Banner */}
+      {deviceMismatchAlert && (
+        <div className="bg-rose-900 border-b border-rose-500 text-rose-100 px-4 py-3 text-xs sm:text-sm font-bold flex items-center justify-between shadow-xl animate-bounce">
+          <div className="flex items-center gap-2 max-w-5xl mx-auto">
+            <ShieldAlert className="w-5 h-5 text-amber-300 shrink-0" />
+            <span>
+              तुमचे खाते दुसऱ्या उपकरणावर (Device) लॉगिन झाले आहे! सुरक्षा कारणास्तव या डिव्हाइसवरून आपोआप लॉगआउट करण्यात आले आहे. (Single Device Limit Enforced)
+            </span>
+          </div>
+          <button 
+            onClick={() => setDeviceMismatchAlert(false)}
+            className="bg-slate-950 hover:bg-slate-900 text-rose-300 px-3 py-1 rounded-lg text-xs"
+          >
+            समजले (Dismiss)
+          </button>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* VIEW ROUTER */}
@@ -358,6 +470,23 @@ export default function App() {
           onClose={() => setIsAddModalOpen(false)}
           onAddQuestion={handleAddQuestion}
           onAddMultipleQuestions={handleAddMultipleQuestions}
+        />
+      )}
+
+      {/* MOBILE OTP AUTH MODAL */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccessLogin={() => {
+            setShowAuthModal(false);
+          }}
+        />
+      )}
+
+      {/* ADMIN CONTROL PANEL MODAL */}
+      {showAdminPanel && (
+        <AdminPanelModal
+          onClose={() => setShowAdminPanel(false)}
         />
       )}
     </div>

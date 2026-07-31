@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profiles storing phone number, device ID, and premium status",
+      "properties": {
+        "phoneNumber": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "isPremium": { "type": "boolean" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["phoneNumber", "deviceId", "isPremium"]
+    },
+    "activationKeys": {
+      "title": "Activation Keys",
+      "description": "Keys used to unlock premium access",
+      "properties": {
+        "key": { "type": "string" },
+        "isUsed": { "type": "boolean" },
+        "usedBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["key", "isUsed"]
+    }
+  }
+}

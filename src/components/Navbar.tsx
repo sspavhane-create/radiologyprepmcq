@@ -14,11 +14,16 @@ import {
   Info,
   Database,
   Lock,
-  Unlock
+  Unlock,
+  User,
+  Shield,
+  LogOut,
+  Smartphone
 } from 'lucide-react';
 import { LanguageMode } from '../types';
 import { getIsPremiumUnlocked } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
+import { UserProfile } from '../lib/firebase';
 
 interface NavbarProps {
   activeTab: string;
@@ -30,6 +35,11 @@ interface NavbarProps {
   langMode: LanguageMode;
   setLangMode: (mode: LanguageMode) => void;
   onOpenAddModal: () => void;
+  userProfile: UserProfile | null;
+  isUnlocked: boolean;
+  onOpenAuthModal: () => void;
+  onOpenAdminPanel: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -42,18 +52,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   langMode,
   setLangMode,
   onOpenAddModal,
+  userProfile,
+  isUnlocked,
+  onOpenAuthModal,
+  onOpenAdminPanel,
+  onLogout,
 }) => {
   const [showDevModal, setShowDevModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    setIsUnlocked(getIsPremiumUnlocked());
-  }, []);
-
-  const refreshUnlockState = () => {
-    setIsUnlocked(getIsPremiumUnlocked());
-  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -81,7 +87,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
+            {/* Admin Panel Button */}
+            {(userProfile?.role === 'admin' || isUnlocked) && (
+              <button
+                onClick={onOpenAdminPanel}
+                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Panel 🛡️</span>
+              </button>
+            )}
+
+            {/* Auth Status / Login Button */}
+            {userProfile ? (
+              <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700 text-[11px]">
+                <User className="w-3 h-3 text-teal-400" />
+                <span className="font-bold text-slate-200">
+                  {userProfile.studentName || userProfile.phoneNumber}
+                </span>
+                <button
+                  onClick={onLogout}
+                  title="लॉगआउट करा"
+                  className="text-slate-400 hover:text-rose-400 ml-1 transition-colors"
+                >
+                  <LogOut className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-500 text-slate-950 hover:brightness-110 transition-all shadow-sm"
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>मोबाईल OTP लॉगिन</span>
+              </button>
+            )}
+
             {/* Premium Unlock Badge / Trigger Button */}
             <button
               onClick={() => setShowUnlockModal(true)}
@@ -301,7 +343,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {showUnlockModal && (
         <PremiumUnlockModal
           onClose={() => setShowUnlockModal(false)}
-          onSuccessUnlock={refreshUnlockState}
+          onSuccessUnlock={() => {}}
         />
       )}
     </header>

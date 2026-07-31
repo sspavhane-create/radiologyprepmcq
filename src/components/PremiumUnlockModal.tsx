@@ -28,6 +28,7 @@ import {
   setPremiumUnlocked,
   generateUniqueDeviceKey 
 } from '../lib/storage';
+import { auth, setFirestoreUserPremiumStatus } from '../lib/firebase';
 
 interface PremiumUnlockModalProps {
   onClose: () => void;
@@ -60,11 +61,14 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
   const deviceId = getDeviceId();
   const activationInfo = getActivationDetails();
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     const res = validateAndUnlockKey(activationCode, studentName, studentPhone);
     
     if (res.success) {
       setIsUnlockedState(true);
+      if (auth.currentUser) {
+        await setFirestoreUserPremiumStatus(auth.currentUser.uid, true);
+      }
       setSuccessMsg(res.message);
       setErrorMsg(null);
       setTimeout(() => {
@@ -83,9 +87,12 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
     setTimeout(() => setCopiedDevId(false), 2000);
   };
 
-  const handleRelock = () => {
+  const handleRelock = async () => {
     setPremiumUnlocked(false);
     setIsUnlockedState(false);
+    if (auth.currentUser) {
+      await setFirestoreUserPremiumStatus(auth.currentUser.uid, false);
+    }
     setSuccessMsg(null);
     setErrorMsg('प्रीमियम व्हर्जन पुन्हा लॉक केले आहे.');
     onSuccessUnlock();
