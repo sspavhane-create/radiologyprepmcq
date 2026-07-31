@@ -98,12 +98,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
     }
   };
 
-  const handleQuickDemoAuth = async () => {
-    setPhoneNumber('9769441271');
-    setAccessCode('Rudra@2018');
-    setInfoMsg('क्रेडेंशियल्स (Rudra@2018) भरले आहेत. "लॉगिन करा" वर क्लिक करा.');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
       <div 
@@ -179,10 +173,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
               <div className="relative">
                 <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="text"
+                  type="password"
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="उदा. Rudra@2018"
+                  placeholder="अॅक्सेस कोड टाका"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-sm font-mono tracking-wider text-amber-300 focus:outline-none font-bold"
                 />
               </div>
@@ -216,14 +210,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
                 <MessageCircle className="w-4 h-4 text-emerald-400" />
                 <span>WhatsApp वरून ॲडमिनकडून कोड मिळवा</span>
               </a>
-              <button
-                type="button"
-                onClick={handleQuickDemoAuth}
-                className="text-xs text-amber-300 font-bold hover:underline flex items-center justify-center gap-1 mx-auto pt-1"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>झटपट डायरेक्ट लॉगिन करा (Quick Test Sign-In)</span>
-              </button>
             </div>
           </form>
 
