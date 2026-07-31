@@ -200,14 +200,13 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
 
         {/* Header */}
         <div className="text-center space-y-2 pt-1">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-teal-400 p-0.5 mx-auto shadow-lg shadow-amber-500/20 flex items-center justify-center">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-              {isUnlockedState ? (
-                <Unlock className="w-6 h-6 text-emerald-400" />
-              ) : (
-                <Lock className="w-6 h-6 text-amber-400" />
-              )}
-            </div>
+          <div className="relative w-full max-w-[200px] mx-auto rounded-xl overflow-hidden border border-amber-400/50 shadow-lg shadow-amber-500/20">
+            <img 
+              src="/app-poster.png" 
+              alt="Mr. Shankar Pavhane Radiography Prep App Poster" 
+              className="w-full h-auto object-cover rounded-xl"
+              referrerPolicy="no-referrer"
+            />
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold border border-amber-500/30">

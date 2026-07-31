@@ -173,18 +173,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Author/Developer Details Box */}
-          <div className="md:col-span-4 bg-slate-900/90 border border-teal-500/50 rounded-xl p-4 space-y-3 backdrop-blur shadow-2xl">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-teal-400 border-b border-slate-800 pb-1.5 flex items-center justify-between">
-              <span>पोर्टल निर्मिती व मार्गदर्शन</span>
-              <UserCheck className="w-4 h-4 text-teal-400" />
+          {/* Author/Developer Details Box with Official App Poster */}
+          <div className="md:col-span-4 bg-slate-900/90 border-2 border-amber-500/40 rounded-2xl p-3.5 space-y-3 backdrop-blur shadow-2xl relative overflow-hidden group">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 border-b border-slate-800 pb-1.5 flex items-center justify-between">
+              <span>ऑफिशियल ॲप पोस्टर & मार्गदर्शन</span>
+              <UserCheck className="w-4 h-4 text-amber-400" />
             </div>
 
-            <div className="space-y-1">
-              <div className="text-base font-extrabold text-white">
-                {OFFICIAL_EXAM_INFO.developer.name}
+            <div className="relative rounded-xl overflow-hidden border border-amber-500/30 shadow-lg group-hover:border-amber-400 transition-all">
+              <img 
+                src="/app-poster.png" 
+                alt="Mr. Shankar Pavhane Radiography Prep 3000+ MCQ Official Poster" 
+                className="w-full h-auto object-cover rounded-xl"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            <div className="space-y-1 pt-1">
+              <div className="text-sm font-black text-white flex items-center justify-between">
+                <span>{OFFICIAL_EXAM_INFO.developer.name}</span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">मार्गदर्शक</span>
               </div>
-              <div className="text-xs font-semibold text-teal-300">
+              <div className="text-xs font-semibold text-amber-300">
                 {OFFICIAL_EXAM_INFO.developer.designation}
               </div>
               <div className="text-xs text-slate-300 flex items-center gap-1">
@@ -195,12 +205,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
               <a 
                 href={`tel:${OFFICIAL_EXAM_INFO.developer.mobile}`} 
-                className="flex items-center gap-1.5 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-lg border border-teal-500/30 font-bold transition-all"
+                className="flex items-center gap-1.5 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 font-bold transition-all w-full justify-center"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                <span>मो. {OFFICIAL_EXAM_INFO.developer.mobile}</span>
+                <span>संपर्क / WhatsApp: {OFFICIAL_EXAM_INFO.developer.mobile}</span>
               </a>
-              <span className="text-[10px] text-slate-400">आरोग्य सेवा महाराष्ट्र</span>
             </div>
           </div>
         </div>

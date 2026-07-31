@@ -196,9 +196,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Brand & Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-cyan-500/20">
-              <Activity className="w-6 h-6 text-slate-950 stroke-[2.5]" />
-            </div>
+            <img 
+              src="/icon.svg" 
+              alt="Mr. Shankar Pavhane Radiography Prep Logo" 
+              className="w-10 h-10 rounded-xl object-cover border border-amber-400/50 shadow-md shadow-amber-500/20"
+              referrerPolicy="no-referrer"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-base sm:text-lg text-white tracking-tight">

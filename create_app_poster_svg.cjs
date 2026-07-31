@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+const fs = require('fs');
+
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -223,4 +225,8 @@
     <path d="M -280 -25 L 280 -25 L 260 20 L -260 20 Z" fill="url(#goldText)" stroke="#ca8a04" stroke-width="4" filter="url(#shadow)" />
     <text x="0" y="6" font-family="'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="24" fill="#0f172a" letter-spacing="3">★ YOUR SUCCESS, OUR MISSION ★</text>
   </g>
-</svg>
+</svg>`;
+
+fs.writeFileSync('public/icon.svg', svgContent, 'utf8');
+fs.writeFileSync('public/app-poster.svg', svgContent, 'utf8');
+console.log('Successfully written public/icon.svg and public/app-poster.svg');
