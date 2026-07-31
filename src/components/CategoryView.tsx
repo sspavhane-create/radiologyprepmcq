@@ -74,7 +74,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
     setRevealedIds(getRevealedAnswerIds());
   };
 
-  const FREE_LIMIT = 40;
+  const FREE_LIMIT = 15;
   const revealedCount = revealedIds.length;
 
   const handleToggleAnswerCategory = (questionId: number) => {
@@ -95,9 +95,9 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
       return;
     }
 
-    if (questionId > 40) {
+    if (questionId > 15) {
       setModalMessage(
-        `प्रश्न क्र. ४० च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
+        `प्रश्न क्र. १५ च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
       );
       setShowUnlockModal(true);
       return;
@@ -114,16 +114,16 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
       setExpandedCards(prev => ({ ...prev, [questionId]: true }));
     } else {
       setModalMessage(
-        `तुम्ही विनामूल्य ४० प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `तुम्ही विनामूल्य १५ प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
     }
   };
 
   const handleSelectChapterQuestion = (qId: number) => {
-    if (!isUnlocked && qId > 40) {
+    if (!isUnlocked && qId > 15) {
       setModalMessage(
-        `प्रश्न क्र. ४० च्या पुढील (Q#${qId}) सर्व प्रश्नांची उत्तरे व सराव अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `प्रश्न क्र. १५ च्या पुढील (Q#${qId}) सर्व प्रश्नांची उत्तरे व सराव अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
       return;
@@ -590,7 +590,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                             >
                               <div className="flex items-center justify-between text-[10px] font-bold text-teal-400">
                                 <span>#Q{q.id}</span>
-                                {isUnlocked || q.id <= 40 ? (
+                                {isUnlocked || q.id <= 15 ? (
                                   <span className="text-teal-300 font-semibold flex items-center gap-1">
                                     <Eye className="w-3 h-3 text-teal-400" />
                                     <span>उत्तर गुप्त (सराव करा)</span>
@@ -700,7 +700,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा - सर्व प्रश्न यादी (Search & Inspect)
             </h2>
             <p className="text-xs text-slate-400">
-              सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य ४० प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
+              सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य १५ प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
             </p>
           </div>
 
@@ -736,12 +736,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     <span className="font-mono bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
                       Q#{q.id} • {q.category.split(':')[0]}
                     </span>
-                    {isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                    {isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
                       <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>उत्तर उघडले (Revealed)</span>
                       </span>
-                    ) : !isUnlocked && q.id > 40 ? (
+                    ) : !isUnlocked && q.id > 15 ? (
                       <span className="text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
                         <Lock className="w-3.5 h-3.5 text-amber-400" />
                         <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
@@ -803,26 +803,26 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     <button
                       onClick={() => handleToggleAnswerCategory(q.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
-                        isShowContent && (isUnlocked || q.id <= 40)
+                        isShowContent && (isUnlocked || q.id <= 15)
                           ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                          : isAnswerRevealed && (isUnlocked || q.id <= 40)
+                          : isAnswerRevealed && (isUnlocked || q.id <= 15)
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : !isUnlocked && (q.id > 40 || revealedCount >= FREE_LIMIT)
+                            : !isUnlocked && (q.id > 15 || revealedCount >= FREE_LIMIT)
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                               : 'bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950'
                       }`}
                     >
-                      {isShowContent && (isUnlocked || q.id <= 40) ? (
+                      {isShowContent && (isUnlocked || q.id <= 15) ? (
                         <>
                           <ChevronUp className="w-3.5 h-3.5" />
                           <span>उत्तर लपवा</span>
                         </>
-                      ) : isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                      ) : isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
                         <>
                           <ChevronDown className="w-3.5 h-3.5 text-emerald-400" />
                           <span>उत्तर पुन्हा पहा</span>
                         </>
-                      ) : !isUnlocked && q.id > 40 ? (
+                      ) : !isUnlocked && q.id > 15 ? (
                         <>
                           <Lock className="w-3.5 h-3.5 text-amber-400" />
                           <span>उत्तर व स्पष्टीकरण पहा 🔒 (प्रीमियम आवश्यक)</span>
@@ -850,7 +850,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                   </div>
 
                   {/* Answer & Explanation Box */}
-                  {isShowContent && (isUnlocked || q.id <= 40) && (
+                  {isShowContent && (isUnlocked || q.id <= 15) && (
                     <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 space-y-2 animate-fade-in text-xs">
                       <div className="text-emerald-200 font-bold">
                         बरोबर उत्तर: {q.correct_answer_mr || q.correct_answer}

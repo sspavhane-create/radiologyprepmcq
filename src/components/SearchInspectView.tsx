@@ -70,7 +70,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
   };
 
   const revealedCount = revealedIds.length;
-  const FREE_LIMIT = 40;
+  const FREE_LIMIT = 15;
 
   // Filter questions
   const filteredQuestions = useMemo(() => {
@@ -141,22 +141,22 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
       return;
     }
 
-    // Premium Protection: Question ID > 40 is strictly locked for free users
-    if (questionId > 40) {
+    // Premium Protection: Question ID > 15 is strictly locked for free users
+    if (questionId > 15) {
       setModalMessage(
-        `प्रश्न क्र. ४० च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
+        `प्रश्न क्र. १५ च्या पुढील (Q#${questionId}) सर्व प्रश्नांची उत्तरे व स्पष्टीकरणे पाहण्यासाठी प्रीमियम व्हर्जन अनलॉक करा 🔒`
       );
       setShowUnlockModal(true);
       return;
     }
 
-    // If already revealed (Q <= 40)
+    // If already revealed (Q <= 15)
     if (isAlreadyRevealed) {
       setExpandedCards(prev => ({ ...prev, [questionId]: true }));
       return;
     }
 
-    // Check 40 Questions Limit for free version
+    // Check 15 Questions Limit for free version
     if (revealedCount < FREE_LIMIT) {
       // Allow reveal
       const updated = addRevealedAnswerId(questionId);
@@ -165,7 +165,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
     } else {
       // Limit reached -> trigger premium unlock modal
       setModalMessage(
-        `तुम्ही विनामूल्य ४० प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `तुम्ही विनामूल्य १५ प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
     }
@@ -219,10 +219,10 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
-            सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य ४० प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
+            सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य १५ प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
           </p>
 
-          {/* 40 Limit Meter Banner */}
+          {/* 15 Limit Meter Banner */}
           <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="flex items-center gap-2 text-slate-200">
@@ -253,7 +253,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
             {!isUnlocked && revealedCount >= FREE_LIMIT && (
               <p className="text-[11px] text-rose-300 font-semibold pt-1 flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>तुमची विनामूल्य ४० प्रश्नांची उत्तरे पाहण्याची मर्यादा पूर्ण झाली आहे. उर्वरित सर्व प्रश्नांची उत्तरे पाहण्यासाठी प्रीमियम अनलॉक करा!</span>
+                <span>तुमची विनामूल्य १५ प्रश्नांची उत्तरे पाहण्याची मर्यादा पूर्ण झाली आहे. उर्वरित सर्व प्रश्नांची उत्तरे पाहण्यासाठी प्रीमियम अनलॉक करा!</span>
               </p>
             )}
           </div>
@@ -406,12 +406,12 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 text-xs">
-                    {isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                    {isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
                       <span className="flex items-center gap-1 text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>उत्तर उघडले (Revealed)</span>
                       </span>
-                    ) : !isUnlocked && q.id > 40 ? (
+                    ) : !isUnlocked && q.id > 15 ? (
                       <span className="flex items-center gap-1 text-amber-300 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
                         <Lock className="w-3.5 h-3.5 text-amber-400" />
                         <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
@@ -478,26 +478,26 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                   <button
                     onClick={() => handleToggleAnswer(q.id)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md ${
-                      isShowContent && (isUnlocked || q.id <= 40)
+                      isShowContent && (isUnlocked || q.id <= 15)
                         ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                        : isAnswerRevealed && (isUnlocked || q.id <= 40)
+                        : isAnswerRevealed && (isUnlocked || q.id <= 15)
                           ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40'
-                          : !isUnlocked && (q.id > 40 || revealedCount >= FREE_LIMIT)
+                          : !isUnlocked && (q.id > 15 || revealedCount >= FREE_LIMIT)
                             ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40'
                             : 'bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950'
                     }`}
                   >
-                    {isShowContent && (isUnlocked || q.id <= 40) ? (
+                    {isShowContent && (isUnlocked || q.id <= 15) ? (
                       <>
                         <ChevronUp className="w-4 h-4" />
                         <span>उत्तर व स्पष्टीकरण लपवा (Hide Explanation)</span>
                       </>
-                    ) : isAnswerRevealed && (isUnlocked || q.id <= 40) ? (
+                    ) : isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
                       <>
                         <ChevronDown className="w-4 h-4 text-emerald-400" />
                         <span>उत्तर व स्पष्टीकरण पुन्हा पहा (Show Explanation)</span>
                       </>
-                    ) : !isUnlocked && q.id > 40 ? (
+                    ) : !isUnlocked && q.id > 15 ? (
                       <>
                         <Lock className="w-4 h-4 text-amber-400" />
                         <span>उत्तर व स्पष्टीकरण पहा 🔒 (प्रीमियम आवश्यक)</span>

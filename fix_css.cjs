@@ -1,4 +1,6 @@
-@import "tailwindcss";
+const fs = require('fs');
+
+const css = `@import "tailwindcss";
 
 @keyframes fadeIn {
   from {
@@ -23,3 +25,6 @@
 .animate-marquee {
   animation: marquee 25s linear infinite;
 }
+`;
+
+fs.writeFileSync('src/index.css', css, 'utf8');

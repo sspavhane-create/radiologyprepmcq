@@ -258,27 +258,37 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
           </div>
         </div>
 
-        {/* Feature Check List */}
-        <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs text-slate-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-            <span className="font-bold text-amber-300">वन टाईम 200 रुपये (One time 200 rupees for access)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-            <span>३०००+ संपूर्ण सराव प्रश्नसंच (मराठी व इंग्रजी अनुवाद)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-            <span>सर्व ३० अध्यायांचे (Chapters 1 to 30) सराव संच</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>१ फोन / १ डिव्हाइस सुरक्षित सत्र (Single Device Hardware Protection)</span>
-          </div>
+        {/* Premium Features List */}
+        <div className="bg-gradient-to-b from-slate-900 via-slate-950/80 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/20 shadow-lg space-y-3 relative overflow-hidden">
+          {/* Subtle bg glow for premium feel */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
           
-          <div className="pt-2 mt-2 border-t border-slate-800 text-center">
-            <p className="text-[11px] text-slate-400 font-bold">
+          <h4 className="text-sm font-black text-amber-300 border-b border-amber-500/20 pb-2 mb-3 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" /> 
+            Premium मध्ये मिळेल:
+          </h4>
+          
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-2 text-xs sm:text-sm text-slate-200">
+            <li className="flex items-center gap-2"><span className="text-lg">📚</span> <span className="font-semibold">3000+ MCQs</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">📖</span> <span className="font-semibold">सर्व 30 Chapters</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">✅</span> <span className="font-semibold">Detailed Answers & Explanations</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">📝</span> <span className="font-semibold">Mock Tests</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">📊</span> <span className="font-semibold">Progress Tracking</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">🔄</span> <span className="font-semibold">Lifetime Updates</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">📱</span> <span className="font-semibold">1 Device Secure Access</span></li>
+            <li className="flex items-center gap-2"><span className="text-lg">💰</span> <span className="font-semibold">Premium Plan</span></li>
+            <li className="flex items-center gap-2 sm:col-span-2 pt-2 border-t border-slate-800">
+              <span className="text-lg">⭐</span> 
+              <span className="font-black text-amber-400 text-sm sm:text-base tracking-wide">One Time Payment – ₹ 200 Only</span>
+            </li>
+            <li className="flex items-center gap-2 sm:col-span-2">
+              <span className="text-lg">🔓</span> 
+              <span className="font-bold text-emerald-400">Lifetime Premium Access</span>
+            </li>
+          </ul>
+          
+          <div className="pt-2 mt-2 text-center relative z-10">
+            <p className="text-[10px] sm:text-xs text-slate-400 font-bold bg-slate-950/50 inline-block px-3 py-1 rounded-lg border border-slate-800">
               येथे पेमेंट करण्यासाठी संपर्क करा किंवा QR कोड स्कॅन करा / UPI द्वारे पैसे पाठवा.
             </p>
           </div>

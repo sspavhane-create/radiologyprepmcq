@@ -349,32 +349,51 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
         {/* Multiple Choice Options List or Premium Lock Banner */}
         {isQuestionLocked ? (
-          <div className="bg-gradient-to-b from-slate-950 via-amber-950/30 to-slate-950 border-2 border-amber-500/40 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400">
-              <Lock className="w-8 h-8" />
+          <div className="bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
+            {/* Ambient Background Glows */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 mx-auto shadow-lg shadow-amber-500/20">
+              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400">
+                <Lock className="w-8 h-8" />
+              </div>
             </div>
 
             <div className="space-y-2 max-w-lg mx-auto">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
-                प्रीमियम लॉक्ड प्रश्न (Question #{currentIndex + 1})
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
+                Premium Unlock आवश्यक
               </span>
 
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                पुढील ३०००+ सर्व प्रश्न अनलॉक करा
+                डॅशबोर्ड वरती 15 प्रश्नांनंतर Premium Unlock आवश्यक
               </h3>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                या प्रकरणातील पहिले १५ प्रश्न विनामूल्य (Free Trial) उपलब्ध आहेत. प्रश्न क्र. १६ व त्यापुढील सर्व ३०००+ प्रश्न आणि सर्व ३० अध्यायांचा सराव करण्यासाठी प्रीमियम व्हर्जन एक्टिव्हेट करा.
-              </p>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            {/* Premium Features List */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:p-6 text-left max-w-md mx-auto space-y-3 relative z-10">
+              <h4 className="text-sm font-bold text-amber-300 border-b border-slate-800 pb-2 mb-3">Premium मध्ये मिळेल:</h4>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-200">
+                <li className="flex items-center gap-2"><span className="text-lg">📚</span> <span className="font-medium">3000+ MCQs</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">📖</span> <span className="font-medium">सर्व 30 Chapters</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">✅</span> <span className="font-medium">Detailed Answers & Explanations</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">📝</span> <span className="font-medium">Mock Tests</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">📊</span> <span className="font-medium">Progress Tracking</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">🔄</span> <span className="font-medium">Lifetime Updates</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">📱</span> <span className="font-medium">1 Device Secure Access</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">💰</span> <span className="font-medium">Premium Plan</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">⭐</span> <span className="font-medium text-amber-300">One Time Payment – ₹ 200 Only</span></li>
+                <li className="flex items-center gap-2"><span className="text-lg">🔓</span> <span className="font-medium text-emerald-400">Lifetime Premium Access</span></li>
+              </ul>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3 relative z-10">
               <button
                 onClick={() => setShowUnlockModal(true)}
-                className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-teal-400 hover:brightness-110 text-slate-950 font-extrabold px-6 py-3 rounded-xl shadow-xl shadow-amber-500/20 text-sm transition-all"
+                className="flex items-center justify-center w-full sm:w-auto gap-2 bg-gradient-to-r from-amber-500 to-amber-300 hover:to-amber-200 text-slate-950 font-black px-8 py-3.5 rounded-xl shadow-xl shadow-amber-500/20 text-sm transition-all"
               >
-                <Unlock className="w-4 h-4 stroke-[2.5]" />
-                <span>प्रीमियम अनलॉक करा (Unlock Premium)</span>
+                <Unlock className="w-5 h-5 stroke-[2.5]" />
+                <span>Unlock Premium ₹200 only</span>
               </button>
             </div>
           </div>
