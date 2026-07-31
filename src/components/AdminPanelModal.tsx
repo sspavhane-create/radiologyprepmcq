@@ -99,6 +99,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
     setUpdatingUid(null);
   };
 
+  const [newCode, setNewCode] = useState('');
+
   const handleAddAllowedPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = newPhone.replace(/\D/g, '');
@@ -107,15 +109,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
       return;
     }
     setAddingPhone(true);
-    const ok = await addAllowedPhone(clean, newName || 'अभ्यासक विद्यार्थी');
-    if (ok) {
-      // Auto generate initial OTP code
-      const otp = await generateAndSaveOtp(clean);
-      setActiveOtps(prev => ({ ...prev, [clean.slice(-10)]: otp }));
+    const result = await addAllowedPhone(clean, newName || 'अभ्यासक विद्यार्थी', newCode);
+    if (result.success) {
       setNewPhone('');
       setNewName('');
+      setNewCode('');
       await fetchUsersAndPhones();
-      alert(`मोबाईल नंबर ॲक्सेस लिस्टमध्ये समाविष्ट झाला! OTP कोड: ${otp}`);
+      alert(`मोबाईल नंबर ॲक्सेस लिस्टमध्ये समाविष्ट झाला! ॲक्सेस कोड: ${result.code}`);
     } else {
       alert('नंबर ॲड करण्यात त्रुटी आली.');
     }
@@ -303,7 +303,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
             </span>
           </div>
 
-          <form onSubmit={handleAddAllowedPhone} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <form onSubmit={handleAddAllowedPhone} className="grid grid-cols-1 sm:grid-cols-4 gap-2">
             <input
               type="text"
               value={newName}
@@ -319,6 +319,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
               placeholder="१० अंकी मोबाईल नं. (उदा. 9822001122)"
               className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-teal-300 font-mono focus:outline-none focus:border-teal-400"
             />
+            <input
+              type="text"
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+              placeholder="ॲक्सेस कोड (पर्यायी)"
+              className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-amber-300 font-mono uppercase focus:outline-none focus:border-amber-400"
+            />
             <button
               type="submit"
               disabled={addingPhone}
@@ -328,8 +335,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>नंबर रजिस्टर करा & OTP द्या</span>
+                  <Key className="w-3.5 h-3.5" />
+                  <span>रजिस्टर करा</span>
                 </>
               )}
             </button>
@@ -338,60 +345,54 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
           {allowedList.length > 0 && (
             <div className="space-y-1.5 pt-2 border-t border-slate-800">
               <div className="text-[11px] font-bold text-slate-400">
-                रजिस्टर मोबाईल नंबर व लाइव्ह OTP यादी ({allowedList.length}):
+                रजिस्टर मोबाईल नंबर व ॲक्सेस कोड यादी ({allowedList.length}):
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
                 {allowedList.map((item) => {
                   const clean = item.phone.slice(-10);
-                  const activeOtp = activeOtps[clean];
-                  const waShareUrl = `https://wa.me/91${clean}?text=${encodeURIComponent(`नमस्कार ${item.studentName}, तुमचा X-Ray Prep ॲप लॉगिन OTP: ${activeOtp || '123456'}`)}`;
+                  const activeCode = item.accessCode || 'नवीन नाही';
+                  const waShareUrl = `https://wa.me/91${clean}?text=${encodeURIComponent(`नमस्कार ${item.studentName}, तुमचा X-Ray Prep ॲप लॉगिन ॲक्सेस कोड: ${activeCode}`)}`;
 
                   return (
-                    <div key={item.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs flex items-center justify-between gap-2">
-                      <div>
-                        <div className="font-bold text-white text-[11px] flex items-center gap-1">
-                          <span>{item.studentName}</span>
-                          <span className="text-teal-400 font-mono text-[10px]">+91 {clean}</span>
-                        </div>
-                        {activeOtp ? (
+                    <div key={item.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-white text-[11px] flex items-center gap-1">
+                            <span>{item.studentName}</span>
+                            <span className="text-teal-400 font-mono text-[10px]">+91 {clean}</span>
+                          </div>
                           <div className="text-[11px] font-mono text-amber-300 font-bold flex items-center gap-1 mt-0.5">
-                            <span>OTP:</span>
+                            <span>Code:</span>
                             <span className="bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-300 text-xs">
-                              {activeOtp}
+                              {activeCode}
                             </span>
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleGenerateOrGetOtp(clean)}
-                            className="text-[10px] text-teal-400 hover:underline mt-0.5"
-                          >
-                            ▶ OTP पहा / जनरेट करा
-                          </button>
-                        )}
-                      </div>
+                          {item.boundDeviceId && (
+                            <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                              Device: {item.boundDeviceId}
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        {activeOtp && (
+                        <div className="flex items-center gap-1 shrink-0">
                           <a
                             href={waShareUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="p-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg border border-emerald-500/30 text-[10px] flex items-center gap-1 font-bold"
-                            title="WhatsApp वर OTP पाठवा"
+                            title="WhatsApp वर कोड पाठवा"
                           >
                             <MessageCircle className="w-3 h-3 text-emerald-400" />
-                            <span>WhatsApp</span>
                           </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhone(clean)}
-                          className="p-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded-lg border border-rose-500/30"
-                          title="ॲक्सेस रद्द करा"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhone(clean)}
+                            className="p-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded-lg border border-rose-500/30"
+                            title="ॲक्सेस रद्द करा"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
