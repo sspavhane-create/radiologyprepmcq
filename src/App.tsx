@@ -79,12 +79,25 @@ export default function App() {
   const [aiTutorQuestion, setAiTutorQuestion] = useState<Question | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
 
-  // Load storage data on mount
+  // PWA Install Prompt state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Load storage data on mount & PWA install listener
   useEffect(() => {
     setQuestions(getAllQuestions());
     setQuizSessions(getQuizSessions());
     setBookmarks(getBookmarks());
     setConfidenceRatings(getFlashcardConfidence());
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   // Firebase Auth Listener & Firestore Device Session Monitor
@@ -320,6 +333,7 @@ export default function App() {
         onOpenAuthModal={() => setShowAuthModal(true)}
         onOpenAdminPanel={() => setShowAdminPanel(true)}
         onLogout={handleLogout}
+        deferredPrompt={deferredPrompt}
       />
 
       {/* Device Mismatch Auto-Signout Notification Banner */}

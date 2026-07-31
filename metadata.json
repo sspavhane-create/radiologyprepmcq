@@ -1,5 +1,5 @@
 {
-  "name": "Mr.Shankar Pavhane Radiography Prep",
+  "name": "XRay MCQs",
   "description": "Comprehensive exam preparation and study platform for X-Ray Scientific Officers by Mr. Shankar Pavhane, featuring 3000+ questions, 30 chapters, category-wise practice, and AI tutor.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

@@ -18,11 +18,13 @@ import {
   User,
   Shield,
   LogOut,
-  Smartphone
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { LanguageMode } from '../types';
 import { getIsPremiumUnlocked } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
+import { InstallAppModal } from './InstallAppModal';
 import { UserProfile } from '../lib/firebase';
 
 interface NavbarProps {
@@ -40,6 +42,7 @@ interface NavbarProps {
   onOpenAuthModal: () => void;
   onOpenAdminPanel: () => void;
   onLogout: () => void;
+  deferredPrompt?: any;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,9 +60,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuthModal,
   onOpenAdminPanel,
   onLogout,
+  deferredPrompt,
 }) => {
   const [showDevModal, setShowDevModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -88,6 +93,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 ml-auto">
+            {/* Install App Direct Button */}
+            <button
+              onClick={() => setShowInstallModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 hover:brightness-110 transition-all cursor-pointer shadow-md shadow-teal-500/20 animate-pulse"
+            >
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>इन्स्टॉल ॲप 📲</span>
+            </button>
+
             {/* Admin Panel Button (Always visible) */}
             <button
               onClick={onOpenAdminPanel}
@@ -257,10 +271,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Acc: <strong className="text-cyan-300 font-bold">{accuracyRate}%</strong></span>
             </div>
 
+            {/* Download/Install PWA App Button */}
+            <button
+              onClick={() => setShowInstallModal(true)}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-400 to-cyan-400 hover:brightness-110 text-slate-950 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold shadow-md shadow-teal-500/20 transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4 stroke-[2.5]" />
+              <span>इन्स्टॉल ॲप</span>
+            </button>
+
             {/* Add/Generate Custom Question */}
             <button
               onClick={onOpenAddModal}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:shadow-teal-500/25 transition-all"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span className="hidden sm:inline">Add Question</span>
@@ -342,6 +365,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         <PremiumUnlockModal
           onClose={() => setShowUnlockModal(false)}
           onSuccessUnlock={() => {}}
+        />
+      )}
+
+      {/* App Download/Install Modal */}
+      {showInstallModal && (
+        <InstallAppModal
+          onClose={() => setShowInstallModal(false)}
+          deferredPrompt={deferredPrompt}
+          onInstallSuccess={() => setShowInstallModal(false)}
         />
       )}
     </header>
