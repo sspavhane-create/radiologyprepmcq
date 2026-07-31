@@ -100,8 +100,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
 
   const handleQuickDemoAuth = async () => {
     setPhoneNumber('9769441271');
-    setAccessCode('123456');
-    setInfoMsg('डेमो क्रेडेंशियल्स भरले आहेत. लॉगिन वर क्लिक करा.');
+    setAccessCode('Rudra@2018');
+    setInfoMsg('क्रेडेंशियल्स (Rudra@2018) भरले आहेत. "लॉगिन करा" वर क्लिक करा.');
   };
 
   return (
@@ -181,9 +181,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
                 <input
                   type="text"
                   value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                  placeholder="उदा. SP-1234"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-sm font-mono tracking-widest text-amber-300 focus:outline-none font-bold uppercase"
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="उदा. Rudra@2018"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-sm font-mono tracking-wider text-amber-300 focus:outline-none font-bold"
                 />
               </div>
             </div>

@@ -320,7 +320,7 @@ export const verifyOtpCode = async (phone: string, inputOtp: string): Promise<bo
   const trimmedInput = inputOtp.trim();
   
   // Master bypass OTP for admin or fallback testing
-  if (trimmedInput === '123456' || trimmedInput === '976944') {
+  if (trimmedInput === 'Rudra@2018' || trimmedInput.toUpperCase() === 'RUDRA@2018' || trimmedInput === '976944') {
     return true;
   }
 
@@ -357,8 +357,8 @@ export const verifyAccessCodeAndLogin = async (phone: string, inputCode: string,
   const cleanPhone = phone.replace(/\D/g, '').slice(-10);
   const trimmedCode = inputCode.trim();
 
-  if (cleanPhone === '9769441271' && trimmedCode === '123456') {
-    return { success: true, message: 'Admin login success', name: 'Admin', uid: 'admin-9769441271' };
+  if (trimmedCode === 'Rudra@2018' || trimmedCode.toUpperCase() === 'RUDRA@2018') {
+    return { success: true, message: 'लॉगिन यशस्वी (Premium Active)', name: 'Admin / Student', uid: `user-${cleanPhone || '9769441271'}` };
   }
 
   try {
