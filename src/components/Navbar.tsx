@@ -88,16 +88,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 ml-auto">
-            {/* Admin Panel Button */}
-            {(userProfile?.role === 'admin' || isUnlocked) && (
-              <button
-                onClick={onOpenAdminPanel}
-                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all"
-              >
-                <Shield className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin Panel 🛡️</span>
-              </button>
-            )}
+            {/* Admin Panel Button (Always visible) */}
+            <button
+              onClick={onOpenAdminPanel}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <span>Admin Panel 🛡️</span>
+            </button>
 
             {/* Auth Status / Login Button */}
             {userProfile ? (

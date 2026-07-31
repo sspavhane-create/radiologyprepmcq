@@ -13,16 +13,28 @@
       },
       "required": ["phoneNumber", "deviceId", "isPremium"]
     },
-    "activationKeys": {
-      "title": "Activation Keys",
-      "description": "Keys used to unlock premium access",
+    "paymentRequests": {
+      "title": "Payment Request",
+      "description": "Pending payment requests uploaded by students with transaction screenshot for admin review",
       "properties": {
-        "key": { "type": "string" },
-        "isUsed": { "type": "boolean" },
-        "usedBy": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "userId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "screenshotUrl": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string" },
+        "processedAt": { "type": "string" },
+        "note": { "type": "string" }
       },
-      "required": ["key", "isUsed"]
+      "required": ["userId", "studentName", "mobileNumber", "transactionId", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/paymentRequests/{requestId}": {
+      "schema": "paymentRequests",
+      "description": "Collection storing payment verification requests from users"
     }
   }
 }

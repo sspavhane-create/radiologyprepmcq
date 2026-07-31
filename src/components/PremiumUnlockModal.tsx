@@ -18,7 +18,12 @@ import {
   Phone,
   Sparkles,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CreditCard,
+  Upload,
+  Send,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { 
   getIsPremiumUnlocked, 
@@ -28,7 +33,7 @@ import {
   setPremiumUnlocked,
   generateUniqueDeviceKey 
 } from '../lib/storage';
-import { auth, setFirestoreUserPremiumStatus } from '../lib/firebase';
+import { auth, setFirestoreUserPremiumStatus, submitPaymentRequest } from '../lib/firebase';
 
 interface PremiumUnlockModalProps {
   onClose: () => void;
@@ -41,14 +46,66 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
   onSuccessUnlock,
   customMessage
 }) => {
+  const [activeTab, setActiveTab] = useState<'submit_payment' | 'enter_key'>('submit_payment');
   const [activationCode, setActivationCode] = useState('');
   const [studentName, setStudentName] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [paymentSubmittedSuccess, setPaymentSubmittedSuccess] = useState(false);
+
   const [showKeyText, setShowKeyText] = useState(false);
   const [copiedDevId, setCopiedDevId] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isUnlockedState, setIsUnlockedState] = useState<boolean>(() => getIsPremiumUnlocked());
+
+  // Handle file select for screenshot
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('स्क्रीनशॉट फाईल 5MB पेक्षा लहान असावी.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotDataUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentName.trim() || !studentPhone.trim() || !transactionId.trim()) {
+      alert('कृपया नाव, मोबाईल नंबर आणि Transaction ID प्रविष्ट करा.');
+      return;
+    }
+
+    setSubmittingPayment(true);
+    const cleanPhone = studentPhone.replace(/\D/g, '').slice(-10);
+    const userId = auth.currentUser?.uid || `user-${cleanPhone}-${Date.now()}`;
+
+    const res = await submitPaymentRequest({
+      userId,
+      studentName: studentName.trim(),
+      mobileNumber: cleanPhone,
+      transactionId: transactionId.trim(),
+      screenshotUrl: screenshotDataUrl || undefined,
+      amount: 499 // or course price
+    });
+
+    setSubmittingPayment(false);
+
+    if (res.success) {
+      setPaymentSubmittedSuccess(true);
+      setErrorMsg(null);
+    } else {
+      alert(`फॉर्म सबमिट करताना त्रुटी: ${res.error}`);
+    }
+  };
 
   // Admin Key Generator State for Shankar Sir
   const [showAdminTool, setShowAdminTool] = useState(false);
@@ -121,14 +178,22 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-teal-500/50 rounded-3xl max-w-lg w-full p-5 sm:p-7 text-slate-100 shadow-2xl space-y-5 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in overflow-y-auto"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border border-teal-500/50 rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-7 text-slate-100 shadow-2xl space-y-4 relative overflow-hidden max-h-[90vh] overflow-y-auto my-auto"
+      >
         {/* Background glow accent */}
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
 
         <button 
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 active:bg-amber-500 active:text-slate-950 p-2 rounded-xl transition-all z-30 cursor-pointer border border-slate-700/60 shadow-sm"
+          title="विंडो बंद करा"
         >
           <X className="w-5 h-5" />
         </button>
@@ -197,6 +262,10 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
         <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs text-slate-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+            <span className="font-bold text-amber-300">वन टाईम 200 रुपये (One time 200 rupees for access)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
             <span>३०००+ संपूर्ण सराव प्रश्नसंच (मराठी व इंग्रजी अनुवाद)</span>
           </div>
           <div className="flex items-center gap-2">
@@ -207,9 +276,159 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>१ फोन / १ डिव्हाइस सुरक्षित सत्र (Single Device Hardware Protection)</span>
           </div>
+          
+          <div className="pt-2 mt-2 border-t border-slate-800 text-center">
+            <p className="text-[11px] text-slate-400 font-bold">
+              येथे पेमेंट करण्यासाठी संपर्क करा किंवा QR कोड स्कॅन करा / UPI द्वारे पैसे पाठवा.
+            </p>
+          </div>
         </div>
 
-        {/* Contact Developer & Form */}
+        {/* Mode Selector Tabs */}
+        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setActiveTab('submit_payment')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'submit_payment'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>पेमेंट स्क्रीनशॉट अपलोड</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('enter_key')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'enter_key'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span>सिक्युरिटी कीने अनलॉक</span>
+          </button>
+        </div>
+
+        {/* TAB 1: Payment Request Upload Form */}
+        {activeTab === 'submit_payment' && (
+          <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-amber-500/30">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+              <span className="flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-amber-400" />
+                <span>UPI पेमेंट माहिती व स्क्रीनशॉट पाठवा:</span>
+              </span>
+              <span className="text-[10px] text-teal-400 font-mono">
+                Auto Admin Verify
+              </span>
+            </div>
+
+            {paymentSubmittedSuccess ? (
+              <div className="p-4 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <h4 className="text-sm font-black text-emerald-200">तुमची पेमेंट विनंती पाठवली आहे!</h4>
+                <p className="text-xs text-emerald-300/90 leading-relaxed">
+                  श्री शंकर पव्हणे सर तुमचा UTR क्रमांक व स्क्रीनशॉट तपासून त्वरित प्रीमियम ॲक्टिव्हेट करतील.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPaymentSubmittedSuccess(false)}
+                  className="mt-2 text-xs font-bold text-amber-300 underline"
+                >
+                  पुन्हा दुसरी विनंती पाठवायची आहे?
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePaymentSubmit} className="space-y-2.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 font-bold mb-1">विद्यार्थ्याचे नाव *</label>
+                    <div className="relative">
+                      <User className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={studentName}
+                        onChange={(e) => setStudentName(e.target.value)}
+                        placeholder="तुमचे नाव प्रविष्ट करा"
+                        className="w-full pl-8 pr-2 py-2 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 font-bold mb-1">मोबाईल नंबर *</label>
+                    <div className="relative">
+                      <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={studentPhone}
+                        onChange={(e) => setStudentPhone(e.target.value)}
+                        placeholder="१० अंकी मोबाईल नं"
+                        className="w-full pl-8 pr-2 py-2 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-bold mb-1">UPI Transaction ID / UTR क्रमांक *</label>
+                  <input
+                    type="text"
+                    required
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder="उदा. 421019873421 किंवा PhonePe/GPay Ref No"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-teal-300 font-mono focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-bold mb-1">पेमेंट स्क्रीनशॉट अपलोड (Optional)</label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer bg-slate-900 border border-dashed border-slate-700 hover:border-amber-400 px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-slate-400 hover:text-amber-300 transition-colors">
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs truncate">
+                        {screenshotDataUrl ? 'स्क्रीनशॉट निवडला आहे ✅' : 'फोटो निवडा (Screenshot Select)'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleScreenshotChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {screenshotDataUrl && (
+                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-amber-400 shrink-0">
+                        <img src={screenshotDataUrl} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingPayment}
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-teal-400 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all mt-1"
+                >
+                  {submittingPayment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  <span>{submittingPayment ? 'पाठवत आहे...' : 'पेमेंट पडताळणी रिक्वेस्ट पाठवा'}</span>
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: Direct Key Unlock */}
+        {activeTab === 'enter_key' && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-300">
             <span>१. मार्गदर्शकांशी संपर्क साधून आपली युनिक की मिळवा:</span>
@@ -301,6 +520,8 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
               </button>
             </div>
           </div>
+        </div>
+        )}
 
           {errorMsg && (
             <div className="text-xs text-rose-300 font-medium bg-rose-950/80 p-3 rounded-xl border border-rose-500/40 flex items-start gap-2">
@@ -431,7 +652,6 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

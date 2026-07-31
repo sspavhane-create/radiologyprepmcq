@@ -425,15 +425,15 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                 </div>
 
                 {/* Question Statement (ALWAYS VISIBLE) */}
-                <div className="space-y-1.5">
+                <div className="space-y-2 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
                   {/* Marathi Statement */}
                   {q.question_mr && (
-                    <h3 className="text-sm sm:text-base font-bold text-white leading-relaxed">
+                    <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed">
                       {q.question_mr}
                     </h3>
                   )}
                   {/* English Statement */}
-                  <p className={`text-xs sm:text-sm font-medium ${q.question_mr ? 'text-slate-300' : 'text-white'}`}>
+                  <p className={`text-sm sm:text-base font-semibold ${q.question_mr ? 'text-teal-200/90' : 'text-white'}`}>
                     {q.question}
                   </p>
                 </div>

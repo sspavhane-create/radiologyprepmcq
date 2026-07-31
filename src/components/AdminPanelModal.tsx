@@ -4,23 +4,34 @@ import {
   ShieldCheck, 
   Search, 
   CheckCircle2, 
-  XCircle, 
   Lock, 
-  Unlock, 
-  UserCheck, 
   Smartphone, 
   RefreshCw, 
   Loader2,
   Key,
   Award,
-  Users
+  Users,
+  UserPlus,
+  Trash2,
+  MessageCircle,
+  Phone,
+  CreditCard,
+  Clock
 } from 'lucide-react';
 import { 
   getAllFirestoreUsers, 
   setFirestoreUserPremiumStatus, 
+  addAllowedPhone,
+  getAllowedPhones,
+  removeAllowedPhone,
+  generateAndSaveOtp,
+  getLiveOtpForPhone,
+  subscribeToPaymentRequests,
+  AllowedPhone,
   UserProfile 
 } from '../lib/firebase';
 import { generateUniqueDeviceKey } from '../lib/storage';
+import { AdminPaymentDashboard } from './AdminPaymentDashboard';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -28,25 +39,50 @@ interface AdminPanelModalProps {
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onStatusUpdated }) => {
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [pinInput, setPinInput] = useState<string>('');
+  
+  const [activeTab, setActiveTab] = useState<'phones' | 'payments' | 'users'>('phones');
+  const [pendingPaymentCount, setPendingPaymentCount] = useState<number>(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
+
+  // Subscribe to pending payments to show live badge count
+  useEffect(() => {
+    const unsub = subscribeToPaymentRequests((requests) => {
+      const pending = requests.filter(r => r.status === 'pending').length;
+      setPendingPaymentCount(pending);
+    });
+    return () => unsub();
+  }, []);
   
   // Custom Key Gen State
   const [genDevId, setGenDevId] = useState('');
   const [genPhone, setGenPhone] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  // Allowed Phone Registration & OTP State
+  const [allowedList, setAllowedList] = useState<AllowedPhone[]>([]);
+  const [newPhone, setNewPhone] = useState('');
+  const [newName, setNewName] = useState('');
+  const [addingPhone, setAddingPhone] = useState(false);
+  const [activeOtps, setActiveOtps] = useState<{ [phone: string]: string }>({});
+
+  const fetchUsersAndPhones = async () => {
     setLoading(true);
-    const list = await getAllFirestoreUsers();
-    setUsers(list);
+    const [userList, phonesList] = await Promise.all([
+      getAllFirestoreUsers(),
+      getAllowedPhones()
+    ]);
+    setUsers(userList);
+    setAllowedList(phonesList.filter(p => p.isAllowed !== false));
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsersAndPhones();
   }, []);
 
   const handleTogglePremium = async (targetUid: string, currentStatus: boolean) => {
@@ -61,6 +97,44 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
       alert('प्रीमियम स्टेटस बदलण्यात त्रुटी आली.');
     }
     setUpdatingUid(null);
+  };
+
+  const handleAddAllowedPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newPhone.replace(/\D/g, '');
+    if (clean.length < 10) {
+      alert('कृपया वैध १० अंकी मोबाईल नंबर टाका.');
+      return;
+    }
+    setAddingPhone(true);
+    const ok = await addAllowedPhone(clean, newName || 'अभ्यासक विद्यार्थी');
+    if (ok) {
+      // Auto generate initial OTP code
+      const otp = await generateAndSaveOtp(clean);
+      setActiveOtps(prev => ({ ...prev, [clean.slice(-10)]: otp }));
+      setNewPhone('');
+      setNewName('');
+      await fetchUsersAndPhones();
+      alert(`मोबाईल नंबर ॲक्सेस लिस्टमध्ये समाविष्ट झाला! OTP कोड: ${otp}`);
+    } else {
+      alert('नंबर ॲड करण्यात त्रुटी आली.');
+    }
+    setAddingPhone(false);
+  };
+
+  const handleRemovePhone = async (cleanPhone: string) => {
+    if (window.confirm(`नक्की नंबर ${cleanPhone} ॲक्सेस यादीतून काढायचा?`)) {
+      await removeAllowedPhone(cleanPhone);
+      fetchUsersAndPhones();
+    }
+  };
+
+  const handleGenerateOrGetOtp = async (cleanPhone: string) => {
+    let otp = await getLiveOtpForPhone(cleanPhone);
+    if (!otp) {
+      otp = await generateAndSaveOtp(cleanPhone);
+    }
+    setActiveOtps(prev => ({ ...prev, [cleanPhone]: otp }));
   };
 
   const filteredUsers = users.filter(u => {
@@ -83,33 +157,248 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-amber-500/50 rounded-3xl max-w-3xl w-full p-5 sm:p-7 text-slate-100 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
-        
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 flex items-center justify-center animate-fade-in"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-3xl bg-slate-900 border border-amber-500/50 rounded-2xl sm:rounded-3xl text-slate-100 shadow-2xl shadow-amber-950/40 my-auto flex flex-col max-h-[90vh] overflow-hidden"
+      >
+        {/* Sticky Header */}
+        <div className="p-3 sm:p-5 border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-20 flex flex-col gap-2.5 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-lg font-black text-white flex items-center gap-1.5 leading-tight">
+                  <span>ॲडमिन कंट्रोल पॅनेल (Admin Panel)</span>
+                  <span className="text-[9px] sm:text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-500/30 shrink-0">
+                    Shankar Sir Master
+                  </span>
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-slate-400">
+                  मोबाईल नंबर रजिस्टर करा, OTP पहा आणि पेमेंट विनंत्या १-क्लिकने ॲप्रूव्ह करा.
+                </p>
+              </div>
+            </div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
+            <button 
+              type="button"
+              onClick={onClose}
+              className="text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 active:bg-amber-500 active:text-slate-950 p-2 sm:p-2.5 rounded-xl transition-all shrink-0 flex items-center justify-center gap-1 text-xs font-bold border border-slate-700 shadow-sm cursor-pointer z-30"
+              title="पॅनेल बंद करा"
+            >
+              <X className="w-5 h-5" />
+              <span className="hidden sm:inline">बंद करा</span>
+            </button>
           </div>
-          <div>
-            <h2 className="text-lg font-black text-white flex items-center gap-2">
-              <span>ॲडमिन कंट्रोल पॅनेल (Shankar Sir Admin Panel)</span>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-500/30">
-                Firestore Realtime Database
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              विद्यार्थ्यांचे प्रीमियम स्टेटस Firestore मध्ये थेट ॲक्टिव्हेट किंवा डीॲक्टिव्हेट करा.
-            </p>
+
+          {/* Navigation Tabs */}
+          {isAdminAuthenticated && (
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950 p-1 sm:p-1.5 rounded-2xl border border-slate-800 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('phones')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'phones'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>मोबाईल व OTP लिस्ट ({allowedList.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('payments')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'payments'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>पेमेंट विनंत्या (Payments)</span>
+              {pendingPaymentCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black animate-pulse">
+                  {pendingPaymentCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'users'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>सर्व विद्यार्थी ({users.length})</span>
+            </button>
           </div>
+          )}
         </div>
+
+        {/* Scrollable Content Body */}
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+          {!isAdminAuthenticated ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-2">
+                <Lock className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">ॲडमिन पिन टाका</h3>
+              <p className="text-xs text-slate-400 text-center max-w-xs">
+                पॅनेल वापरण्यासाठी सुरक्षित ॲडमिन पिन (PIN) प्रविष्ट करा.
+              </p>
+              <div className="flex items-center gap-2 w-full max-w-xs mt-4">
+                <input
+                  type="password"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (pinInput === '9769441271') setIsAdminAuthenticated(true);
+                      else alert('चुकीचा पिन!');
+                    }
+                  }}
+                  placeholder="PIN प्रविष्ट करा"
+                  className="flex-1 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-center text-lg font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pinInput === '9769441271') setIsAdminAuthenticated(true);
+                  else alert('चुकीचा पिन!');
+                }}
+                className="w-full max-w-xs bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 rounded-xl transition-all"
+              >
+                लॉगिन करा
+              </button>
+            </div>
+          ) : (
+            <>
+        {/* TAB 1: Payment Requests Dashboard */}
+        {activeTab === 'payments' && (
+          <AdminPaymentDashboard onStatusUpdated={fetchUsersAndPhones} />
+        )}
+
+        {/* TAB 2: Registered Mobile Numbers & OTP Manager Box */}
+        {activeTab === 'phones' && (
+          <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs font-bold text-teal-300">
+            <span className="flex items-center gap-1.5">
+              <UserPlus className="w-4 h-4 text-teal-400" />
+              <span>रजिस्टर मोबाईल नंबर व OTP व्यवस्थापन (Allowed Phone Manager):</span>
+            </span>
+            <span className="text-[10px] bg-teal-950 text-teal-300 font-mono px-2 py-0.5 rounded border border-teal-500/30">
+              Strict Registered Mobile Login
+            </span>
+          </div>
+
+          <form onSubmit={handleAddAllowedPhone} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="विद्यार्थ्याचे नाव (उदा. राहुल शिंदे)"
+              className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-400"
+            />
+            <input
+              type="tel"
+              maxLength={10}
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ''))}
+              placeholder="१० अंकी मोबाईल नं. (उदा. 9822001122)"
+              className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-teal-300 font-mono focus:outline-none focus:border-teal-400"
+            />
+            <button
+              type="submit"
+              disabled={addingPhone}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition-all"
+            >
+              {addingPhone ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>नंबर रजिस्टर करा & OTP द्या</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {allowedList.length > 0 && (
+            <div className="space-y-1.5 pt-2 border-t border-slate-800">
+              <div className="text-[11px] font-bold text-slate-400">
+                रजिस्टर मोबाईल नंबर व लाइव्ह OTP यादी ({allowedList.length}):
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                {allowedList.map((item) => {
+                  const clean = item.phone.slice(-10);
+                  const activeOtp = activeOtps[clean];
+                  const waShareUrl = `https://wa.me/91${clean}?text=${encodeURIComponent(`नमस्कार ${item.studentName}, तुमचा X-Ray Prep ॲप लॉगिन OTP: ${activeOtp || '123456'}`)}`;
+
+                  return (
+                    <div key={item.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs flex items-center justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-white text-[11px] flex items-center gap-1">
+                          <span>{item.studentName}</span>
+                          <span className="text-teal-400 font-mono text-[10px]">+91 {clean}</span>
+                        </div>
+                        {activeOtp ? (
+                          <div className="text-[11px] font-mono text-amber-300 font-bold flex items-center gap-1 mt-0.5">
+                            <span>OTP:</span>
+                            <span className="bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-300 text-xs">
+                              {activeOtp}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateOrGetOtp(clean)}
+                            className="text-[10px] text-teal-400 hover:underline mt-0.5"
+                          >
+                            ▶ OTP पहा / जनरेट करा
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {activeOtp && (
+                          <a
+                            href={waShareUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg border border-emerald-500/30 text-[10px] flex items-center gap-1 font-bold"
+                            title="WhatsApp वर OTP पाठवा"
+                          >
+                            <MessageCircle className="w-3 h-3 text-emerald-400" />
+                            <span>WhatsApp</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhone(clean)}
+                          className="p-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded-lg border border-rose-500/30"
+                          title="ॲक्सेस रद्द करा"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         {/* Key Generator Tool Card */}
         <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
@@ -167,35 +456,40 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
             </div>
           )}
         </div>
+      </div>
+        )}
 
-        {/* User Search & Refresh Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="नाव, मोबाईल किंवा Device ID द्वारे शोधा..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
-            />
-          </div>
+        {/* TAB 3: Registered Users List */}
+        {activeTab === 'users' && (
+          <div className="space-y-4">
+            {/* User Search & Refresh Header */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="नाव, मोबाईल किंवा Device ID द्वारे शोधा..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
+                />
+              </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end text-xs text-slate-400">
-            <span className="flex items-center gap-1 font-bold">
-              <Users className="w-4 h-4 text-teal-400" />
-              <span>एकूण विद्यार्थी: {filteredUsers.length}</span>
-            </span>
-            <button
-              onClick={fetchUsers}
-              disabled={loading}
-              className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-teal-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-bold"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>रिफ्रेश</span>
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end text-xs text-slate-400">
+                <span className="flex items-center gap-1 font-bold">
+                  <Users className="w-4 h-4 text-teal-400" />
+                  <span>एकूण विद्यार्थी: {filteredUsers.length}</span>
+                </span>
+                <button
+                  onClick={fetchUsersAndPhones}
+                  disabled={loading}
+                  className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-teal-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-bold"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>रिफ्रेश</span>
+                </button>
+              </div>
+            </div>
 
         {/* User List Table */}
         <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
@@ -269,7 +563,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
                       </>
                     ) : (
                       <>
-                        <Unlock className="w-3.5 h-3.5" />
+                        <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>प्रीमियम अनलॉक करा</span>
                       </>
                     )}
@@ -278,12 +572,33 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
               </div>
             ))
           ) : (
-            <p className="py-8 text-center text-xs text-slate-400">
-              काहीही जुळणारे विद्यार्थी सापडले नाहीत.
-            </p>
+            <div className="py-8 text-center text-xs text-slate-400">
+              कोणताही विद्यार्थी सापडला नाही.
+            </div>
           )}
+        </div>
+      </div>
+      )}
+      </>
+        )}
+        </div>
+
+        {/* Sticky Footer Bar */}
+        <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex items-center justify-between shrink-0">
+          <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            Shankar Sir Admin Panel
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-colors border border-slate-700"
+          >
+            पॅनेल बंद करा (Close)
+          </button>
         </div>
       </div>
     </div>
   );
 };
+

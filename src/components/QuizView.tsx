@@ -334,14 +334,14 @@ export const QuizView: React.FC<QuizViewProps> = ({
         {/* Question Text Stem (English / Marathi / Both) */}
         <div className="space-y-3">
           {(quizLangMode === 'en' || quizLangMode === 'dual') && (
-            <h3 className="text-lg sm:text-xl font-bold text-white leading-relaxed tracking-tight">
+            <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-relaxed tracking-tight">
               {currentQuestion.question}
             </h3>
           )}
 
           {(quizLangMode === 'mr' || quizLangMode === 'dual') && currentQuestion.question_mr && (
-            <div className="p-3.5 bg-teal-950/40 border border-teal-500/30 rounded-xl text-teal-100 font-medium text-base sm:text-lg leading-relaxed">
-              <span className="text-xs font-bold text-teal-400 uppercase tracking-wider block mb-1">मराठी भाषांतर:</span>
+            <div className="p-4 bg-teal-950/60 border-2 border-teal-500/40 rounded-2xl text-teal-100 font-bold text-lg sm:text-xl leading-relaxed shadow-lg">
+              <span className="text-xs font-black text-amber-400 uppercase tracking-wider block mb-1">मराठी भाषांतर (मराठी प्रश्न):</span>
               {currentQuestion.question_mr}
             </div>
           )}
@@ -404,18 +404,18 @@ export const QuizView: React.FC<QuizViewProps> = ({
                   key={idx}
                   onClick={() => handleSelectOption(option)}
                   disabled={isRevealed}
-                  className={`w-full text-left p-4 rounded-xl border transition-all duration-150 flex items-center justify-between gap-4 ${optionStyle}`}
+                  className={`w-full text-left p-4 sm:p-5 rounded-2xl border-2 transition-all duration-150 flex items-center justify-between gap-4 cursor-pointer ${optionStyle}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3.5">
                     <span
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5 ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-base sm:text-lg font-black flex-shrink-0 mt-0.5 shadow-sm ${
                         isRevealed && isCorrectOption
                           ? 'bg-emerald-500 text-slate-950'
                           : isRevealed && isSelected && !isCorrect
                           ? 'bg-rose-500 text-white'
                           : isSelected
                           ? 'bg-teal-400 text-slate-950'
-                          : 'bg-slate-700/60 text-slate-300'
+                          : 'bg-slate-700/80 text-slate-200'
                       }`}
                     >
                       {String.fromCharCode(65 + idx)}
@@ -423,10 +423,10 @@ export const QuizView: React.FC<QuizViewProps> = ({
                     
                     <div className="space-y-1">
                       {(quizLangMode === 'en' || quizLangMode === 'dual') && (
-                        <div className="text-sm sm:text-base leading-snug">{option}</div>
+                        <div className="text-base sm:text-lg font-bold leading-snug">{option}</div>
                       )}
                       {(quizLangMode === 'mr' || quizLangMode === 'dual') && optionMr && (
-                        <div className="text-xs sm:text-sm text-teal-200 font-medium leading-snug">
+                        <div className="text-sm sm:text-base text-teal-200 font-bold leading-snug">
                           {optionMr}
                         </div>
                       )}
