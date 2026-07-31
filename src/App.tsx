@@ -320,6 +320,7 @@ export default function App() {
             questions={questions}
             onAddMultipleQuestions={handleAddMultipleQuestions}
             onNavigateTab={setActiveTab}
+            onAskAITutor={(q) => setAiTutorQuestion(q)}
           />
         ) : activeTab === 'flashcards' ? (
           /* FLASHCARDS VIEW */

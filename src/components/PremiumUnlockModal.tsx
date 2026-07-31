@@ -32,11 +32,13 @@ import {
 interface PremiumUnlockModalProps {
   onClose: () => void;
   onSuccessUnlock: () => void;
+  customMessage?: string;
 }
 
 export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
   onClose,
   onSuccessUnlock,
+  customMessage
 }) => {
   const [activationCode, setActivationCode] = useState('');
   const [studentName, setStudentName] = useState('');
@@ -144,11 +146,17 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
           <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
             {isUnlockedState ? 'प्रीमियम १-डिव्हाइस सत्र ॲक्टिव्ह आहे' : 'प्रीमियम १-डिव्हाइस युनिक ॲक्टिव्हेशन'}
           </h2>
-          <p className="text-xs text-slate-300">
-            {isUnlockedState 
-              ? 'आपले प्रीमियम व्हर्जन एकाच डिव्हाइससाठी सुरक्षितरीत्या ॲक्टिव्हेट आहे.' 
-              : 'प्रत्येक विद्यार्थ्याला स्वतःच्या मोबाईलसाठी स्वतंत्र (Unique) सिक्युरिटी की दिली जाते.'}
-          </p>
+          {customMessage ? (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-200 font-bold leading-relaxed">
+              {customMessage}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-300">
+              {isUnlockedState 
+                ? 'आपले प्रीमियम व्हर्जन एकाच डिव्हाइससाठी सुरक्षितरीत्या ॲक्टिव्हेट आहे.' 
+                : 'प्रत्येक विद्यार्थ्याला स्वतःच्या मोबाईलसाठी स्वतंत्र (Unique) सिक्युरिटी की दिली जाते.'}
+            </p>
+          )}
         </div>
 
         {/* Device ID Badge */}

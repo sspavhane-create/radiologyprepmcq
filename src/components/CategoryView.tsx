@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question, QuizSession } from '../types';
 import { ALL_30_CHAPTERS, ChapterItem } from '../data/chaptersData';
+import { getIsPremiumUnlocked } from '../lib/storage';
+import { PremiumUnlockModal } from './PremiumUnlockModal';
 import { 
   HeartPulse, 
   ShieldCheck, 
@@ -50,6 +52,13 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const [selectedChapterId, setSelectedChapterId] = useState<number | null>(1);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedChapterId, setExpandedChapterId] = useState<number | null>(1);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
+  const [selectedQuestionForModal, setSelectedQuestionForModal] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    setIsUnlocked(getIsPremiumUnlocked());
+  }, []);
 
   // Auto switch portion if a non-technical category is selected
   React.useEffect(() => {
@@ -400,7 +409,21 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                               >
                                 <div className="flex items-center justify-between text-[10px] font-bold text-teal-300">
                                   <span>Q#{q.id}</span>
-                                  <span className="text-emerald-400">उत्तर: {q.correct_answer_mr || q.correct_answer}</span>
+                                  {q.id <= 40 || isUnlocked ? (
+                                    <span className="text-emerald-400">उत्तर: {q.correct_answer_mr || q.correct_answer}</span>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedQuestionForModal(q.id);
+                                        setShowUnlockModal(true);
+                                      }}
+                                      className="text-amber-400 font-bold hover:underline flex items-center gap-1"
+                                    >
+                                      <Lock className="w-3 h-3 text-amber-400" />
+                                      <span>उत्तर 🔒 (प्रीमियम)</span>
+                                    </button>
+                                  )}
                                 </div>
                                 <p className="text-xs text-slate-100 font-medium line-clamp-2">
                                   {q.question_mr || q.question}
@@ -510,7 +533,21 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                             >
                               <div className="flex items-center justify-between text-[10px] font-bold text-teal-400">
                                 <span>#Q{q.id}</span>
-                                <span className="text-emerald-400">{q.correct_answer_mr || q.correct_answer}</span>
+                                {q.id <= 40 || isUnlocked ? (
+                                  <span className="text-emerald-400">{q.correct_answer_mr || q.correct_answer}</span>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedQuestionForModal(q.id);
+                                      setShowUnlockModal(true);
+                                    }}
+                                    className="text-amber-400 font-bold hover:underline flex items-center gap-1"
+                                  >
+                                    <Lock className="w-3 h-3 text-amber-400" />
+                                    <span>उत्तर 🔒</span>
+                                  </button>
+                                )}
                               </div>
                               <p className="text-xs text-slate-200 line-clamp-2">
                                 {q.question_mr || q.question}
@@ -654,11 +691,34 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                   </p>
                 )}
 
-                <div className="flex items-center gap-2 pt-1 text-xs">
-                  <span className="text-slate-400 font-medium">योग्य उत्तर:</span>
-                  <span className="text-emerald-400 font-extrabold bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
-                    {q.correct_answer_mr || q.correct_answer}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">योग्य उत्तर:</span>
+                    {q.id <= 40 || isUnlocked ? (
+                      <span className="text-emerald-400 font-extrabold bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
+                        {q.correct_answer_mr || q.correct_answer}
+                      </span>
+                    ) : (
+                      <span className="text-amber-300 font-bold bg-amber-950/60 px-2.5 py-0.5 rounded-lg border border-amber-500/30 flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-amber-400" />
+                        <span>उत्तर लॉक्ड (प्रीमियम व्हर्जन आवश्यक)</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {q.id > 40 && !isUnlocked && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedQuestionForModal(q.id);
+                        setShowUnlockModal(true);
+                      }}
+                      className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-xl border border-amber-500/40 transition-all flex items-center gap-1"
+                    >
+                      <Lock className="w-3 h-3 text-amber-400" />
+                      <span>उत्तर अनलॉक करा</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -669,6 +729,26 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* PREMIUM UNLOCK MODAL */}
+      {showUnlockModal && (
+        <PremiumUnlockModal
+          onClose={() => {
+            setShowUnlockModal(false);
+            setSelectedQuestionForModal(undefined);
+          }}
+          onSuccessUnlock={() => {
+            setIsUnlocked(true);
+            setShowUnlockModal(false);
+            setSelectedQuestionForModal(undefined);
+          }}
+          customMessage={
+            selectedQuestionForModal
+              ? `प्रश्न #${selectedQuestionForModal} चे उत्तर व सविस्तर स्पष्टीकरण पाहण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒 (मोफत व्हर्जन फक्त पहिल्या ४० प्रश्नांसाठी उपलब्ध आहे)`
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 };

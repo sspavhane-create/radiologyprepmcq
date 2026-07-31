@@ -4,6 +4,7 @@ import { CATEGORIES } from '../data/initialQuestions';
 import { ALL_30_CHAPTERS } from '../data/chaptersData';
 import { getIsPremiumUnlocked } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
+import { SearchInspectView } from './SearchInspectView';
 import { 
   Sparkles, 
   Download, 
@@ -31,12 +32,14 @@ interface QuestionBankGeneratorProps {
   questions: Question[];
   onAddMultipleQuestions: (newQs: Question[]) => void;
   onNavigateTab: (tab: string) => void;
+  onAskAITutor?: (question: Question) => void;
 }
 
 export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   questions,
   onAddMultipleQuestions,
-  onNavigateTab
+  onNavigateTab,
+  onAskAITutor
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(CATEGORIES[0].name);
   const [batchSize, setBatchSize] = useState<number>(10);
@@ -504,62 +507,13 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
         )
       )}
 
-      {/* TAB 3: SEARCH & INSPECTION TABLE */}
-      {(activeBookTab === 'all' || activeBookTab === 'chapters') && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-teal-400" />
-                <span>उपलब्ध प्रश्न यादी ({filteredQuestions.length} / {questions.length})</span>
-              </h2>
-              <p className="text-xs text-slate-400">आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा.</p>
-            </div>
-
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="प्रश्न किंवा ID शोधा..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-400"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300 border-collapse">
-              <thead>
-                <tr className="bg-slate-950 border-b border-slate-800 text-teal-300 font-bold">
-                  <th className="p-3">ID</th>
-                  <th className="p-3">विभाग / Category</th>
-                  <th className="p-3">प्रश्न (Marathi / English)</th>
-                  <th className="p-3">उत्तर (Correct Choice)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {filteredQuestions.slice(0, 30).map((q) => (
-                  <tr key={q.id} className="hover:bg-slate-850/60 transition-colors">
-                    <td className="p-3 font-mono font-bold text-slate-400">#{q.id}</td>
-                    <td className="p-3 font-medium text-teal-200">{q.category.split(':')[0]}</td>
-                    <td className="p-3 max-w-md">
-                      <p className="font-semibold text-white">{q.question_mr || q.question}</p>
-                      {q.question_mr && <p className="text-[11px] text-slate-400">{q.question}</p>}
-                    </td>
-                    <td className="p-3 font-bold text-emerald-400">{q.correct_answer_mr || q.correct_answer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredQuestions.length > 30 && (
-              <p className="text-center text-xs text-slate-400 pt-4">
-                आणखी {filteredQuestions.length - 30} प्रश्न उपलब्ध आहेत... (सराव करण्यासाठी सराव चाचणी सुरू करा)
-              </p>
-            )}
-          </div>
-        </div>
+      {/* TAB 3: SEARCH & INSPECT VIEW (Questions list with 40-reveal free limit and answer hide/reveal) */}
+      {activeBookTab === 'all' && (
+        <SearchInspectView
+          questions={questions}
+          onAskAITutor={onAskAITutor}
+          onNavigateTab={onNavigateTab}
+        />
       )}
 
       {/* PREMIUM UNLOCK MODAL */}

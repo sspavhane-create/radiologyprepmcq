@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   PREMIUM_UNLOCKED: 'xray_prep_premium_unlocked',
   DEVICE_ID: 'xray_prep_device_id',
   ACTIVATION_INFO: 'xray_prep_activation_info',
+  REVEALED_ANSWERS: 'xray_prep_revealed_answers',
 };
 
 // Generate or retrieve a persistent Unique Device ID for this browser/device
@@ -236,4 +237,27 @@ export const setFlashcardConfidence = (questionId: number, rating: 'again' | 'ha
   current[questionId] = rating;
   localStorage.setItem(STORAGE_KEYS.FLASHCARD_CONFIDENCE, JSON.stringify(current));
   return current;
+};
+
+export const getRevealedAnswerIds = (): number[] => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.REVEALED_ANSWERS);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const addRevealedAnswerId = (questionId: number): number[] => {
+  const current = getRevealedAnswerIds();
+  if (!current.includes(questionId)) {
+    const updated = [...current, questionId];
+    localStorage.setItem(STORAGE_KEYS.REVEALED_ANSWERS, JSON.stringify(updated));
+    return updated;
+  }
+  return current;
+};
+
+export const getRevealedCount = (): number => {
+  return getRevealedAnswerIds().length;
 };
