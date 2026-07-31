@@ -142,18 +142,16 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
       return;
     }
 
-    // Check Question ID <= 40 AND 40 Questions Limit
-    if (questionId <= 40 && revealedCount < FREE_LIMIT) {
-      // Allow reveal for free questions (Q1 to Q40)
+    // Check 40 Questions Limit
+    if (revealedCount < FREE_LIMIT) {
+      // Allow reveal
       const updated = addRevealedAnswerId(questionId);
       setRevealedIds(updated);
       setExpandedCards(prev => ({ ...prev, [questionId]: true }));
     } else {
-      // Limit reached or Q > 40 -> trigger premium unlock modal
+      // Limit reached -> trigger premium unlock modal
       setModalMessage(
-        questionId > 40
-          ? `प्रश्न #${questionId} चे उत्तर व सविस्तर स्पष्टीकरण पाहण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒 (मोफत व्हर्जन फक्त पहिल्या ४० प्रश्नांसाठी उपलब्ध आहे).`
-          : `तुम्ही विनामूल्य ४० प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `तुम्ही विनामूल्य ४० प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
     }
