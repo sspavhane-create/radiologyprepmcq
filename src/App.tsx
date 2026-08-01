@@ -34,7 +34,7 @@ import { AddQuestionModal } from './components/AddQuestionModal';
 import { QuestionBankGenerator } from './components/QuestionBankGenerator';
 import { AuthModal } from './components/AuthModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
-import { ShieldAlert, LogOut, Smartphone, Download, Loader2 } from 'lucide-react';
+import { ShieldAlert, LogOut, Smartphone, Download } from 'lucide-react';
 
 export default function App() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -79,14 +79,6 @@ export default function App() {
   // Modal States
   const [aiTutorQuestion, setAiTutorQuestion] = useState<Question | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
-  const [isDownloading, setIsDownloading] = useState<boolean>(false);
-
-  const handleDownloadApp = () => {
-    setIsDownloading(true);
-    setTimeout(() => {
-      setIsDownloading(false);
-    }, 4000);
-  };
 
   // Load storage data on mount
   useEffect(() => {
@@ -509,22 +501,11 @@ export default function App() {
         <a
           href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
           download="Radiology_Prep_MCQ.apk"
-          onClick={handleDownloadApp}
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full shadow-2xl shadow-blue-500/40 border border-blue-400/30 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer font-extrabold whitespace-nowrap group text-sm sm:text-base tracking-wide ${isDownloading ? 'opacity-90 pointer-events-none' : ''}`}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full shadow-2xl shadow-blue-500/40 border border-blue-400/30 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer font-extrabold whitespace-nowrap group text-sm sm:text-base tracking-wide"
         >
-          {isDownloading ? (
-            <>
-              <Loader2 className="w-5 h-5 text-blue-200 animate-spin" />
-              <span>Downloading App...</span>
-              <Download className="w-5 h-5 text-blue-200 animate-pulse" />
-            </>
-          ) : (
-            <>
-              <Smartphone className="w-5 h-5 text-blue-100 animate-bounce" />
-              <span>📱 Download Android App</span>
-              <Download className="w-5 h-5 text-blue-100 group-hover:translate-y-0.5 transition-transform" />
-            </>
-          )}
+          <Smartphone className="w-5 h-5 text-blue-100 animate-bounce" />
+          <span>📱 Download Android App</span>
+          <Download className="w-5 h-5 text-blue-100 group-hover:translate-y-0.5 transition-transform" />
         </a>
       )}
     </div>
