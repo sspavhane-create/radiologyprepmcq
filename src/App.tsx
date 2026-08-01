@@ -9,7 +9,8 @@ import {
   saveCustomQuestion,
   getFlashcardConfidence,
   setFlashcardConfidence as setConfidenceStorage,
-  getIsPremiumUnlocked
+  getIsPremiumUnlocked,
+  setPremiumUnlocked
 } from './lib/storage';
 import { 
   auth, 
@@ -23,10 +24,14 @@ import {
   registerUserDeviceAndLogin
 } from './lib/firebase';
 import { Navbar } from './components/Navbar';
-import { Dashboard } from './components/Dashboard';
+import { BottomNav } from './components/BottomNav';
+import { HomeView } from './components/HomeView';
+import { CategoryView } from './components/CategoryView';
+import { MockTestsView } from './components/MockTestsView';
+import { PremiumView } from './components/PremiumView';
+import { ProfileView } from './components/ProfileView';
 import { QuizView } from './components/QuizView';
 import { FlashcardView } from './components/FlashcardView';
-import { CategoryView } from './components/CategoryView';
 import { BookmarksView } from './components/BookmarksView';
 import { ResultSummary } from './components/ResultSummary';
 import { AITutorModal } from './components/AITutorModal';
@@ -34,7 +39,9 @@ import { AddQuestionModal } from './components/AddQuestionModal';
 import { QuestionBankGenerator } from './components/QuestionBankGenerator';
 import { AuthModal } from './components/AuthModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
-import { ShieldAlert, LogOut, Smartphone, Download } from 'lucide-react';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { BreakingNewsTicker } from './components/BreakingNewsTicker';
+import { ShieldAlert, Smartphone, Download } from 'lucide-react';
 
 export default function App() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -43,22 +50,51 @@ export default function App() {
   const [confidenceRatings, setConfidenceRatings] = useState<Record<number, 'again' | 'hard' | 'good' | 'easy'>>({});
   const [langMode, setLangMode] = useState<LanguageMode>('dual');
   
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  // Navigation active tab: 'home' | 'chapters' | 'mock-tests' | 'premium' | 'profile' | 'bookmarks' | 'flashcards' | 'question-bank'
+  const [activeTab, setActiveTab] = useState<string>('home');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
 
   // Firebase Auth & Firestore Profile State
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => getIsPremiumUnlocked());
 
-  // Modals & Device Alert State
+  // Ensure local storage is kept in sync when premium profile is active
+  useEffect(() => {
+    if (userProfile?.isPremium) {
+      setIsUnlocked(true);
+      setPremiumUnlocked(true);
+    }
+  }, [userProfile]);
+
+  // Periodic 24-hour auto-expiry check for Premium Session
+  useEffect(() => {
+    const checkExpiry = () => {
+      const unlocked = getIsPremiumUnlocked();
+      if (!unlocked && isUnlocked && !userProfile?.isPremium) {
+        setIsUnlocked(false);
+      }
+    };
+    checkExpiry();
+    const timer = setInterval(checkExpiry, 30000);
+    return () => clearInterval(timer);
+  }, [isUnlocked, userProfile]);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      setPremiumUnlocked(true);
+    }
+  }, [isUnlocked]);
+
+  // Modals & Search State
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
+  const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
   const [deviceMismatchAlert, setDeviceMismatchAlert] = useState<boolean>(false);
 
   const handleSelectCategoryForChapters = (catName: string) => {
     setSelectedCategoryFilter(catName);
-    setActiveTab('categories');
+    setActiveTab('chapters');
   };
   
   // Active Quiz State
@@ -93,7 +129,6 @@ export default function App() {
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      // Clear previous snapshot listener if any
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
         unsubscribeSnapshot = null;
@@ -102,29 +137,31 @@ export default function App() {
       setFirebaseUser(user);
       if (user) {
         const currentDeviceId = getDeviceId();
-        
         try {
-          // Fetch or create user profile in Firestore
           const profile = await registerUserDeviceAndLogin(user, currentDeviceId);
           setUserProfile(profile);
           setIsUnlocked(profile.isPremium);
+          if (profile.isPremium) {
+            setPremiumUnlocked(true);
+          }
 
-          // Listen to Firestore real-time profile changes for single device enforcement
           unsubscribeSnapshot = subscribeToDeviceSession(
             user.uid,
             currentDeviceId,
             () => {
-              // Device mismatch detected! Logout user immediately.
               setDeviceMismatchAlert(true);
               signOut(auth);
               setFirebaseUser(null);
               setUserProfile(null);
               setIsUnlocked(false);
+              setPremiumUnlocked(false);
             },
             (updatedProfile) => {
               setUserProfile(updatedProfile);
-              // Firestore is the sole source of truth for premium status!
               setIsUnlocked(updatedProfile.isPremium);
+              if (updatedProfile.isPremium) {
+                setPremiumUnlocked(true);
+              }
             }
           );
         } catch (err) {
@@ -132,7 +169,6 @@ export default function App() {
         }
       } else {
         setUserProfile(null);
-        // Fallback to local storage if not authenticated
         setIsUnlocked(getIsPremiumUnlocked());
       }
     });
@@ -147,6 +183,9 @@ export default function App() {
 
   const handleLogout = async () => {
     await signOut(auth);
+    try {
+      localStorage.removeItem('xray_prep_logged_in_uid');
+    } catch (e) {}
     setFirebaseUser(null);
     setUserProfile(null);
     setIsUnlocked(getIsPremiumUnlocked());
@@ -209,7 +248,6 @@ export default function App() {
         ...sampledLogical
       ];
 
-      // If dataset has fewer than 100 questions, fill with remaining
       if (quizSet.length < 100) {
         const remaining = questions.filter(q => !quizSet.some(sq => sq.id === q.id));
         quizSet = [...quizSet, ...remaining.sort(() => Math.random() - 0.5)].slice(0, 100);
@@ -218,24 +256,24 @@ export default function App() {
       title = 'सार्वजनिक आरोग्य विभाग - १०० प्रश्न भरती परीक्षा (200 Marks)';
       examMode = true;
     } else if (options.mode === 'core') {
-      quizSet = questions.filter(q => q.id <= 6 || q.section === 'technical');
-      title = 'क्ष-किरण तांत्रिकी मुख्य सराव संच (Technical Core Set)';
+      quizSet = questions.filter(q => q.id <= 15 || q.section === 'technical');
+      title = 'क्ष-किरण तांत्रिकी मुख्य सराव संच (Technical Core Practice)';
     } else if (options.mode === 'category' && options.category) {
       quizSet = questions.filter(q => q.category === options.category);
-      title = `${options.category} - सराव परीक्षा`;
+      title = `${options.category} - Chapter Practice`;
     } else if (options.mode === 'saved' && options.questionIds) {
       quizSet = questions.filter(q => options.questionIds?.includes(q.id));
-      title = 'जतन केलेले प्रश्न सराव (Saved Questions Practice)';
+      title = 'Saved Questions Practice';
     } else if (options.mode === 'missed' && options.questionIds) {
       quizSet = questions.filter(q => options.questionIds?.includes(q.id));
-      title = 'चुकलेल्या प्रश्नांचा पुनर्अभ्यास (Missed Questions Review)';
+      title = 'Missed Questions Practice';
     } else {
       quizSet = [...questions].sort(() => Math.random() - 0.5);
-      title = 'सार्वजनिक आरोग्य विभाग - सराव चाचणी (Practice Mode)';
+      title = 'Radiology Practice Mode';
       examMode = false;
     }
 
-    if (quizSet.length === 0) quizSet = questions.slice(0, 10);
+    if (quizSet.length === 0) quizSet = questions.slice(0, 15);
 
     setActiveQuizQuestions(quizSet);
     setActiveQuizTitle(title);
@@ -243,7 +281,6 @@ export default function App() {
     setIsCentralQuiz(central);
     setInitialQuestionIndex(0);
     setQuizResult(null);
-    setActiveTab('quiz');
   };
 
   const handleFinishQuiz = (answers: Record<number, UserAnswer>, timeSpentSeconds: number) => {
@@ -283,11 +320,10 @@ export default function App() {
     const targetQuestion = questions.find(q => q.id === qId);
     if (targetQuestion) {
       setActiveQuizQuestions([targetQuestion]);
-      setActiveQuizTitle(`प्रश्न क्र. #${qId} सराव (Review Question #${qId})`);
+      setActiveQuizTitle(`Review Question #${qId}`);
       setIsExamMode(false);
       setInitialQuestionIndex(0);
       setQuizResult(null);
-      setActiveTab('quiz');
     }
   };
 
@@ -302,7 +338,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-teal-500 selection:text-slate-950">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 font-sans antialiased selection:bg-teal-500 selection:text-slate-950">
+      {/* Navigation Header */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => {
@@ -314,37 +351,36 @@ export default function App() {
         }}
         langMode={langMode}
         setLangMode={setLangMode}
-        totalQuestionsCount={questions.length}
-        bookmarkedCount={bookmarks.length}
-        accuracyRate={accuracyRate}
-        streakDays={quizSessions.length > 0 ? Math.min(quizSessions.length, 7) : 1}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
         userProfile={userProfile}
         isUnlocked={isUnlocked}
         onOpenAuthModal={() => setShowAuthModal(true)}
         onOpenAdminPanel={() => setShowAdminPanel(true)}
+        onOpenSearch={() => setShowSearchModal(true)}
         onLogout={handleLogout}
       />
 
+      {/* Auto Scrolling Breaking News Bar */}
+      <BreakingNewsTicker />
+
       {/* Device Mismatch Auto-Signout Notification Banner */}
       {deviceMismatchAlert && (
-        <div className="bg-rose-900 border-b border-rose-500 text-rose-100 px-4 py-3 text-xs sm:text-sm font-bold flex items-center justify-between shadow-xl animate-bounce">
+        <div className="bg-rose-600 text-white px-4 py-3 text-xs sm:text-sm font-bold flex items-center justify-between shadow-md animate-bounce">
           <div className="flex items-center gap-2 max-w-5xl mx-auto">
-            <ShieldAlert className="w-5 h-5 text-amber-300 shrink-0" />
+            <ShieldAlert className="w-5 h-5 text-amber-200 shrink-0" />
             <span>
               तुमचे खाते दुसऱ्या उपकरणावर (Device) लॉगिन झाले आहे! सुरक्षा कारणास्तव या डिव्हाइसवरून आपोआप लॉगआउट करण्यात आले आहे. (Single Device Limit Enforced)
             </span>
           </div>
           <button 
             onClick={() => setDeviceMismatchAlert(false)}
-            className="bg-slate-950 hover:bg-slate-900 text-rose-300 px-3 py-1 rounded-lg text-xs"
+            className="bg-slate-950 text-rose-300 px-3 py-1 rounded-lg text-xs"
           >
-            समजले (Dismiss)
+            Dismiss
           </button>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-24">
         {/* VIEW ROUTER */}
         {quizResult ? (
           /* RESULT SUMMARY VIEW */
@@ -360,7 +396,7 @@ export default function App() {
             onRetakeMissedOnly={(missedIds) => handleStartQuiz({ mode: 'missed', questionIds: missedIds })}
             onNavigateHome={() => {
               setQuizResult(null);
-              setActiveTab('dashboard');
+              setActiveTab('home');
             }}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
           />
@@ -372,54 +408,29 @@ export default function App() {
             isExamMode={isExamMode}
             bookmarkedIds={bookmarkedIds}
             langMode={langMode}
+            isUnlocked={isUnlocked}
             onToggleBookmark={handleToggleBookmark}
             onFinishQuiz={handleFinishQuiz}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
             onExitQuiz={() => {
               setActiveQuizQuestions(null);
-              setActiveTab('dashboard');
+              setActiveTab('home');
             }}
             initialQuestionIndex={initialQuestionIndex}
             isCentral={isCentralQuiz}
           />
-        ) : activeTab === 'dashboard' ? (
-          /* DASHBOARD VIEW */
-          <Dashboard
+        ) : activeTab === 'home' || activeTab === 'dashboard' ? (
+          /* HOME VIEW */
+          <HomeView
             questions={questions}
             quizSessions={quizSessions}
             bookmarkedIds={bookmarkedIds}
-            langMode={langMode}
             onStartQuiz={handleStartQuiz}
             onNavigateTab={setActiveTab}
-            onSelectQuestionDirect={handleSelectQuestionDirect}
-            onSelectCategoryForChapters={handleSelectCategoryForChapters}
+            isUnlocked={isUnlocked}
           />
-        ) : activeTab === 'quiz' ? (
-          /* DEFAULT QUIZ LAUNCHER PAGE */
-          <div className="max-w-2xl mx-auto text-center py-12 space-y-6">
-            <h2 className="text-2xl font-bold text-white">परीक्षा प्रकार निवडा (Select Practice Quiz Mode)</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => handleStartQuiz({ mode: 'core' })}
-                className="p-6 bg-slate-900 border border-slate-800 hover:border-teal-400 rounded-2xl text-left space-y-2 transition-all group"
-              >
-                <div className="text-xs font-bold text-teal-400">तांत्रिक विषय (80 Marks)</div>
-                <h3 className="text-lg font-bold text-white group-hover:text-teal-300">क्ष-किरण तांत्रिक प्रश्नसंच</h3>
-                <p className="text-xs text-slate-400">ASRT, Radiography Positioning, Contrast Media व Radiation Safety चा सराव.</p>
-              </button>
-
-              <button
-                onClick={() => handleStartQuiz({ mode: 'exam' })}
-                className="p-6 bg-slate-900 border border-slate-800 hover:border-teal-400 rounded-2xl text-left space-y-2 transition-all group"
-              >
-                <div className="text-xs font-bold text-cyan-400">पूर्ण परीक्षा (200 Marks)</div>
-                <h3 className="text-lg font-bold text-white group-hover:text-cyan-300">सार्वजनिक आरोग्य विभाग भरती परीक्षा</h3>
-                <p className="text-xs text-slate-400">१०० प्रश्न (तांत्रिक ८0 + बिगर तांत्रिक १२० गुण) २ तास वेळ.</p>
-              </button>
-            </div>
-          </div>
-        ) : activeTab === 'categories' ? (
-          /* CATEGORIES VIEW */
+        ) : activeTab === 'chapters' || activeTab === 'categories' ? (
+          /* CHAPTERS VIEW */
           <CategoryView
             questions={questions}
             quizSessions={quizSessions}
@@ -431,14 +442,47 @@ export default function App() {
             onGenerateCategoryQuestions={(cat) => setIsAddModalOpen(true)}
             onSelectQuestionDirect={handleSelectQuestionDirect}
             langMode={langMode}
+            isUnlocked={isUnlocked}
           />
-        ) : activeTab === 'question-bank' ? (
-          /* QUESTION BANK & GENERATOR ENGINE VIEW */
-          <QuestionBankGenerator
+        ) : activeTab === 'mock-tests' || activeTab === 'quiz' ? (
+          /* MOCK TESTS VIEW */
+          <MockTestsView
             questions={questions}
-            onAddMultipleQuestions={handleAddMultipleQuestions}
+            isUnlocked={isUnlocked}
+            langMode={langMode}
+            onStartQuiz={handleStartQuiz}
             onNavigateTab={setActiveTab}
-            onAskAITutor={(q) => setAiTutorQuestion(q)}
+          />
+        ) : activeTab === 'premium' ? (
+          /* PREMIUM VIEW */
+          <PremiumView
+            onSuccessUnlock={() => {
+              setIsUnlocked(true);
+              setPremiumUnlocked(true);
+            }}
+            onNavigateTab={setActiveTab}
+          />
+        ) : activeTab === 'profile' ? (
+          /* PROFILE VIEW */
+          <ProfileView
+            userProfile={userProfile}
+            isUnlocked={isUnlocked}
+            quizSessions={quizSessions}
+            bookmarkedCount={bookmarks.length}
+            accuracyRate={accuracyRate}
+            onLogout={handleLogout}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+            onNavigateTab={setActiveTab}
+            onOpenAdminPanel={() => setShowAdminPanel(true)}
+          />
+        ) : activeTab === 'bookmarks' ? (
+          /* BOOKMARKS VIEW */
+          <BookmarksView
+            questions={questions}
+            bookmarks={bookmarks}
+            onToggleBookmark={handleToggleBookmark}
+            onStartQuizSaved={(ids) => handleStartQuiz({ mode: 'saved', questionIds: ids })}
+            onSelectQuestionDirect={handleSelectQuestionDirect}
           />
         ) : activeTab === 'flashcards' ? (
           /* FLASHCARDS VIEW */
@@ -450,17 +494,41 @@ export default function App() {
             onToggleBookmark={handleToggleBookmark}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
           />
-        ) : activeTab === 'bookmarks' ? (
-          /* BOOKMARKS VIEW */
-          <BookmarksView
+        ) : activeTab === 'question-bank' ? (
+          /* QUESTION BANK VIEW */
+          <QuestionBankGenerator
             questions={questions}
-            bookmarks={bookmarks}
-            onToggleBookmark={handleToggleBookmark}
-            onStartQuizSaved={(ids) => handleStartQuiz({ mode: 'saved', questionIds: ids })}
-            onSelectQuestionDirect={handleSelectQuestionDirect}
+            onAddMultipleQuestions={handleAddMultipleQuestions}
+            onNavigateTab={setActiveTab}
+            onAskAITutor={(q) => setAiTutorQuestion(q)}
+            isUnlocked={isUnlocked}
+            langMode={langMode}
           />
         ) : null}
       </main>
+
+      {/* Bottom Navigation Bar */}
+      {!activeQuizQuestions && !quizResult && (
+        <BottomNav
+          activeTab={activeTab === 'dashboard' ? 'home' : activeTab === 'categories' ? 'chapters' : activeTab === 'quiz' ? 'mock-tests' : activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setActiveQuizQuestions(null);
+            setQuizResult(null);
+          }}
+          isUnlocked={isUnlocked}
+        />
+      )}
+
+      {/* Global Search Modal */}
+      {showSearchModal && (
+        <GlobalSearchModal
+          questions={questions}
+          onClose={() => setShowSearchModal(false)}
+          onSelectQuestion={handleSelectQuestionDirect}
+          onSelectChapter={(cat) => handleSelectCategoryForChapters(cat)}
+        />
+      )}
 
       {/* AI TUTOR MODAL */}
       {aiTutorQuestion && (
@@ -479,13 +547,25 @@ export default function App() {
         />
       )}
 
-      {/* MOBILE OTP AUTH MODAL */}
+      {/* SECURITY KEY / ACCESS CODE AUTH MODAL */}
       {showAuthModal && (
         <AuthModal
+          isUnlocked={isUnlocked}
+          userProfile={userProfile}
           onClose={() => setShowAuthModal(false)}
-          onSuccessLogin={() => {
+          onSuccessLogin={(user) => {
             setShowAuthModal(false);
+            setFirebaseUser(user);
+            setIsUnlocked(true);
+            // Trigger a dynamic profile sync for the logged-in user
+            const currentDeviceId = getDeviceId();
+            registerUserDeviceAndLogin(user, currentDeviceId).then((profile) => {
+              setUserProfile(profile);
+            }).catch((err) => {
+              console.warn('Failed to fetch user profile on login:', err);
+            });
           }}
+          onLogout={handleLogout}
         />
       )}
 
@@ -495,20 +575,6 @@ export default function App() {
           onClose={() => setShowAdminPanel(false)}
         />
       )}
-
-      {/* FLOATING DOWNLOAD APP BUTTON */}
-      {!quizResult && !activeQuizQuestions && activeTab === 'dashboard' && (
-        <a
-          href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
-          download="Radiology_Prep_MCQ.apk"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full shadow-2xl shadow-blue-500/40 border border-blue-400/30 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer font-extrabold whitespace-nowrap group text-sm sm:text-base tracking-wide"
-        >
-          <Smartphone className="w-5 h-5 text-blue-100 animate-bounce" />
-          <span>📱 Download Android App</span>
-          <Download className="w-5 h-5 text-blue-100 group-hover:translate-y-0.5 transition-transform" />
-        </a>
-      )}
     </div>
   );
 }
-

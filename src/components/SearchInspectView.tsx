@@ -34,13 +34,15 @@ interface SearchInspectViewProps {
   langMode?: LanguageMode;
   onAskAITutor?: (question: Question) => void;
   onNavigateTab?: (tab: string) => void;
+  isUnlocked?: boolean;
 }
 
 export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
   questions,
   langMode = 'dual',
   onAskAITutor,
-  onNavigateTab
+  onNavigateTab,
+  isUnlocked: isUnlockedProp = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedChapter, setSelectedChapter] = useState<number | 'all'>('all');
@@ -52,7 +54,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
 
   // Revealed Answers State
   const [revealedIds, setRevealedIds] = useState<number[]>([]);
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isUnlockedProp || getIsPremiumUnlocked());
   const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
   const [modalMessage, setModalMessage] = useState<string | undefined>(undefined);
 
@@ -61,8 +63,8 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
 
   useEffect(() => {
     setRevealedIds(getRevealedAnswerIds());
-    setIsUnlocked(getIsPremiumUnlocked());
-  }, []);
+    setIsUnlocked(isUnlockedProp || getIsPremiumUnlocked());
+  }, [isUnlockedProp]);
 
   const refreshPremiumState = () => {
     setIsUnlocked(getIsPremiumUnlocked());
@@ -314,7 +316,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
               <option value="all">सर्व ३० अध्याय (All 30 Chapters)</option>
               {ALL_30_CHAPTERS.map(c => (
                 <option key={c.id} value={c.id}>
-                  प्रकरण {c.id}: {c.titleMr}
+                  {langMode === 'mr' ? `प्रकरण ${c.id}: ${c.titleMr}` : langMode === 'en' ? `Ch #${c.id}: ${c.title}` : `Ch #${c.id}: ${c.title} (${c.titleMr})`}
                 </option>
               ))}
             </select>

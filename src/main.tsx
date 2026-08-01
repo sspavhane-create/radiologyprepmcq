@@ -3,6 +3,19 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// Clear old caches to avoid white screen from stale bundle files
+try {
+  if ('caches' in window) {
+    caches.keys().then((names) => {
+      for (const name of names) {
+        caches.delete(name);
+      }
+    });
+  }
+} catch (e) {
+  console.warn('Failed to clear caches:', e);
+}
+
 // Register Service Worker for PWA Installation support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

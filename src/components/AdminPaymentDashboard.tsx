@@ -470,7 +470,7 @@ export const AdminPaymentDashboard: React.FC<AdminPaymentDashboardProps> = ({
       {previewImage && (
         <div 
           onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-4 flex items-center justify-center animate-fade-in"
+          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-4 flex items-center justify-center animate-fade-in overflow-y-auto"
         >
           <div 
             onClick={(e) => e.stopPropagation()}

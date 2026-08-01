@@ -43,6 +43,7 @@ interface DashboardProps {
   quizSessions: QuizSession[];
   bookmarkedIds: number[];
   langMode?: LanguageMode;
+  isUnlocked?: boolean;
   onStartQuiz: (options: { 
     mode: 'exam' | 'practice' | 'category' | 'core'; 
     category?: string; 
@@ -206,6 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   quizSessions,
   bookmarkedIds,
   langMode = 'dual',
+  isUnlocked: isUnlockedProp,
   onStartQuiz,
   onNavigateTab,
   onSelectQuestionDirect,
@@ -234,7 +236,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const attemptedUniqueCount = Object.keys(questionStatusMap).length;
   const coveragePercent = Math.round((attemptedUniqueCount / Math.max(totalQuestions, 1)) * 100);
 
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => !!isUnlockedProp || getIsPremiumUnlocked());
   const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
   const [showAdModal, setShowAdModal] = useState<boolean>(false);
 
@@ -250,12 +252,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [chapterFilterQuery, setChapterFilterQuery] = useState<string>('');
 
   useEffect(() => {
-    const unlocked = getIsPremiumUnlocked();
+    const unlocked = !!isUnlockedProp || getIsPremiumUnlocked();
     setIsUnlocked(unlocked);
     if (!unlocked) {
       setShowAdModal(true);
+    } else {
+      setShowAdModal(false);
     }
-  }, []);
+  }, [isUnlockedProp]);
 
   const handleSuccessUnlock = () => {
     setIsUnlocked(true);
@@ -923,11 +927,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </span>
                         <span className="text-slate-400 font-bold">Ch #{ch.id}</span>
                       </div>
-                      <h4 className="font-extrabold text-white text-xs sm:text-sm line-clamp-1">
-                        {langMode === 'mr' ? ch.titleMr : ch.title}
+                      <h4 className="font-black text-white text-sm sm:text-base leading-snug">
+                        {ch.titleMr}
                       </h4>
-                      <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                        {langMode === 'mr' ? ch.descriptionMr : ch.description}
+                      <p className="text-xs text-teal-300 font-semibold italic">
+                        {ch.title}
+                      </p>
+                      <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                        {ch.descriptionMr}
                       </p>
                     </div>
 

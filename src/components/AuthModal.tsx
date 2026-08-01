@@ -9,33 +9,62 @@ import {
   Loader2,
   Phone,
   MessageCircle,
-  Unlock
+  Unlock,
+  RefreshCw,
+  LogOut,
+  Clock
 } from 'lucide-react';
 import { 
+  UserProfile,
   auth, 
   signInAnonymously,
   getDeviceId,
   verifyAccessCodeAndLogin,
   User as FirebaseUser
 } from '../lib/firebase';
-import { setPremiumUnlocked } from '../lib/storage';
+import { getIsPremiumUnlocked, setPremiumUnlocked } from '../lib/storage';
 
 interface AuthModalProps {
   onClose: () => void;
   onSuccessLogin: (user: FirebaseUser) => void;
+  isUnlocked?: boolean;
+  userProfile?: UserProfile | null;
+  onLogout?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ 
+  onClose, 
+  onSuccessLogin,
+  isUnlocked = false,
+  userProfile = null,
+  onLogout
+}) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [transferConfirmation, setTransferConfirmation] = useState<{ previousDeviceId: string } | null>(null);
+  const [showLoginFormAnyway, setShowLoginFormAnyway] = useState(false);
+
+  const isAlreadyUnlocked = isUnlocked || getIsPremiumUnlocked() || (userProfile && userProfile.isPremium);
+
+  const handleLogoutPremium = () => {
+    setPremiumUnlocked(false);
+    try {
+      localStorage.removeItem('xray_prep_logged_in_uid');
+    } catch {}
+    if (onLogout) {
+      onLogout();
+    }
+    setInfoMsg('प्रीमियम व्हर्जन या मोबाईलवरून यशस्वीरीत्या Logout झाले आहे. आता नवीन मोबाईल/ॲक्सेस कोड वापरता येईल.');
+    setShowLoginFormAnyway(true);
+  };
 
   const whatsappUrl = 'https://wa.me/919769441271?text=' + encodeURIComponent('नमस्कार शंकर सर, मला X-Ray Prep ॲपसाठी ॲक्सेस कोड हवा आहे.');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e?: React.FormEvent, forceTransfer: boolean = false) => {
+    if (e) e.preventDefault();
     setErrorMsg(null);
     setInfoMsg(null);
 
@@ -54,8 +83,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
     setLoading(true);
     try {
       const deviceId = getDeviceId();
-      const res = await verifyAccessCodeAndLogin(cleanPhone, accessCode, deviceId);
+      const res = await verifyAccessCodeAndLogin(cleanPhone, accessCode, deviceId, forceTransfer);
       
+      if (res.needsTransferConfirm && res.previousDeviceId) {
+        setTransferConfirmation({ previousDeviceId: res.previousDeviceId });
+        setLoading(false);
+        return;
+      }
+
       if (!res.success) {
         setErrorMsg(res.message);
         setLoading(false);
@@ -63,10 +98,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
       }
       
       // Successfully authenticated
+      setTransferConfirmation(null);
       setInfoMsg(res.message);
       
+      const targetUserUid = res.uid || `user-${cleanPhone}`;
+      try {
+        localStorage.setItem('xray_prep_logged_in_uid', targetUserUid);
+      } catch (e) {}
+
       // Set local storage for premium features
-      setPremiumUnlocked(true);
+      setPremiumUnlocked(true, res.name || 'अभ्यासक विद्यार्थी', cleanPhone);
       
       // Ensure Firebase Auth has a user
       let firebaseUser = auth.currentUser as any;
@@ -76,11 +117,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
           firebaseUser = cred.user;
         } catch (authErr) {
           console.warn('Anonymous auth failed, proceeding with local mock user:', authErr);
-          firebaseUser = { uid: res.uid || `user-${Date.now()}` };
+          firebaseUser = { uid: res.uid || `user-${cleanPhone}` };
         }
       }
       
-      // Provide dummy user payload if needed for React state
+      // Provide user payload for React state
       const mockUser = {
         ...firebaseUser,
         uid: res.uid || firebaseUser.uid,
@@ -89,7 +130,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
       
       setTimeout(() => {
         onSuccessLogin(mockUser);
-      }, 1500);
+      }, 1200);
 
     } catch (err) {
       console.error('Login error:', err);
@@ -99,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in overflow-y-auto">
       <div 
         className="bg-slate-900 border border-teal-500/50 rounded-2xl sm:rounded-3xl max-w-md w-full text-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
@@ -121,8 +162,80 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
-          <div className="text-center space-y-1 sm:space-y-1.5">
+        {isAlreadyUnlocked && !showLoginFormAnyway ? (
+          <div className="p-4 sm:p-6 space-y-4 text-center overflow-y-auto">
+            <div className="w-16 h-16 bg-teal-500/20 border-2 border-teal-500/60 text-teal-300 rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-teal-500/20">
+              <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-xs font-black border border-teal-500/40 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                प्रीमियम व्हर्जन ॲक्टिव्ह (Premium Active)
+              </span>
+              <h3 className="text-lg font-black text-white pt-1">
+                तुमचे प्रीमियम लॉगिन आधीच ॲक्टिव्ह आहे!
+              </h3>
+              <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                तुम्ही या डिव्हाइसवर आधीपासूनच प्रीमियम व्हर्जन अनलॉक केलेले आहे. सर्व ३० अध्याय, ३०००+ सराव प्रश्न व सर्व मॉक टेस्ट पूर्ण अनलॉक आहेत.
+              </p>
+            </div>
+
+            {/* Account Details Summary */}
+            <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-teal-500/30 text-left space-y-2 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-slate-400">लॉगिन स्टेटस:</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> ॲक्टिव्ह सदस्य (Active)
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-slate-400">ऑटोमॅटिक व्हेलिडिटी:</span>
+                <span className="text-amber-300 font-extrabold flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" /> २४ तास (१ दिवस ऑटोमॅटिक Logout)
+                </span>
+              </div>
+              {userProfile?.phoneNumber && (
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <span className="text-slate-400">रजिस्टर मोबाईल:</span>
+                  <span className="text-white font-mono font-bold">{userProfile.phoneNumber}</span>
+                </div>
+              )}
+              {userProfile?.studentName && (
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <span className="text-slate-400">नाव:</span>
+                  <span className="text-teal-300 font-bold">{userProfile.studentName}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">डिव्हाइस आयडी:</span>
+                <span className="text-teal-300 font-mono font-bold text-[11px]">{getDeviceId()}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:brightness-110 text-slate-950 font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all"
+              >
+                <Sparkles className="w-4 h-4 stroke-[2.5]" />
+                <span>सराव सुरू ठेवा (Continue Practice)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogoutPremium}
+                className="w-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-extrabold py-2.5 rounded-xl text-xs border border-rose-500/30 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <LogOut className="w-4 h-4 text-rose-400" />
+                <span>या मोबाईलवरून प्रीमियम Version Logout करा</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
+            <div className="text-center space-y-1 sm:space-y-1.5">
             <h3 className="text-sm sm:text-base font-bold text-slate-200">
               मोबाईल नंबर व ॲक्सेस कोड प्रविष्ट करा
             </h3>
@@ -131,7 +244,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
             </p>
           </div>
 
-          {errorMsg && (
+          {transferConfirmation && (
+            <div className="p-4 bg-amber-950/90 border-2 border-amber-500/80 rounded-2xl space-y-3 shadow-xl">
+              <div className="flex items-center gap-2 text-amber-300 font-black text-sm">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                <span>दुसऱ्या डिव्हाइसवर आधीपासूनच लॉगिन सापडले!</span>
+              </div>
+              
+              <div className="text-xs text-slate-200 leading-relaxed space-y-1.5 bg-slate-950/70 p-3 rounded-xl border border-amber-500/30">
+                <p>
+                  हा ॲक्सेस कोड सध्या दुसऱ्या डिव्हाइसवर (<span className="font-mono text-amber-300 font-bold">{transferConfirmation.previousDeviceId}</span>) चालू आहे.
+                </p>
+                <p className="text-teal-300 font-semibold pt-1">
+                  तुम्हाला जुन्या डिव्हाइसवरून लॉग आउट करून या सध्याच्या डिव्हाइसवर (<span className="font-mono text-teal-300 font-bold">{getDeviceId()}</span>) लॉगिन ट्रान्सफर करायचे आहे का?
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleLogin(undefined, true)}
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-amber-500 to-teal-400 hover:brightness-110 text-slate-950 font-black py-3 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 stroke-[2.5]" />
+                  )}
+                  <span>होय, जुने डिव्हाइस लॉग आउट करून येथे लॉगिन करा</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransferConfirmation(null)}
+                  disabled={loading}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-3 rounded-xl text-xs border border-slate-700 cursor-pointer transition-colors"
+                >
+                  रद्द करा (Cancel)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {errorMsg && !transferConfirmation && (
             <div className="p-3 bg-rose-950/80 border border-rose-500/40 rounded-xl text-xs text-rose-300 font-medium flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
@@ -223,6 +379,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccessLogin })
             </p>
           </div>
         </div>
+        )}
 
         <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex items-center justify-between shrink-0">
           <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">

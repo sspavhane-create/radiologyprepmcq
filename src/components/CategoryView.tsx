@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Question, QuizSession, LanguageMode } from '../types';
-import { ALL_30_CHAPTERS, ChapterItem } from '../data/chaptersData';
+import { 
+  MAIN_SUBJECTS_30, 
+  SECTIONS_DATA, 
+  MainSubjectItem, 
+  ChapterHierarchyItem, 
+  TopicItem 
+} from '../data/subjectHierarchyData';
 import { 
   getIsPremiumUnlocked, 
   getRevealedAnswerIds, 
@@ -8,25 +14,40 @@ import {
 } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
 import { 
-  HeartPulse, 
-  ShieldCheck, 
-  Syringe, 
+  Zap, 
+  Cpu, 
+  Maximize, 
   Layers, 
-  Play, 
+  Radio, 
+  Activity, 
+  Shield, 
+  Maximize2, 
+  Droplet, 
+  Heart, 
+  AlertTriangle, 
+  UserCheck, 
+  ShieldAlert, 
+  Briefcase, 
+  Lock, 
+  Monitor, 
+  BookOpen, 
+  Globe, 
+  FileText, 
+  Award, 
   Sparkles, 
-  Bookmark, 
-  BookOpen,
-  Award,
-  Zap,
-  Globe,
-  FileText,
-  Search,
-  CheckCircle2,
+  HeartPulse, 
+  CheckCircle2, 
+  Search, 
+  Play, 
+  ChevronRight, 
+  Eye, 
+  HelpCircle, 
+  Check, 
+  Clock, 
+  Filter, 
+  ArrowLeft,
   ChevronDown,
-  ChevronUp,
-  HelpCircle,
-  Eye,
-  Lock
+  ChevronUp
 } from 'lucide-react';
 
 interface CategoryViewProps {
@@ -40,7 +61,38 @@ interface CategoryViewProps {
   onGenerateCategoryQuestions: (categoryName: string) => void;
   onSelectQuestionDirect: (qId: number) => void;
   langMode?: LanguageMode;
+  isUnlocked?: boolean;
 }
+
+// Icon helper mapping
+const getSubjectIcon = (iconName: string, className: string = "w-5 h-5") => {
+  switch (iconName) {
+    case 'Zap': return <Zap className={className} />;
+    case 'Cpu': return <Cpu className={className} />;
+    case 'Maximize': return <Maximize className={className} />;
+    case 'Layers': return <Layers className={className} />;
+    case 'Radio': return <Radio className={className} />;
+    case 'Activity': return <Activity className={className} />;
+    case 'Shield': return <Shield className={className} />;
+    case 'Maximize2': return <Maximize2 className={className} />;
+    case 'Droplet': return <Droplet className={className} />;
+    case 'Heart': return <Heart className={className} />;
+    case 'AlertTriangle': return <AlertTriangle className={className} />;
+    case 'UserCheck': return <UserCheck className={className} />;
+    case 'ShieldAlert': return <ShieldAlert className={className} />;
+    case 'Briefcase': return <Briefcase className={className} />;
+    case 'Lock': return <Lock className={className} />;
+    case 'Monitor': return <Monitor className={className} />;
+    case 'BookOpen': return <BookOpen className={className} />;
+    case 'Globe': return <Globe className={className} />;
+    case 'FileText': return <FileText className={className} />;
+    case 'Award': return <Award className={className} />;
+    case 'Sparkles': return <Sparkles className={className} />;
+    case 'HeartPulse': return <HeartPulse className={className} />;
+    case 'CheckCircle2': return <CheckCircle2 className={className} />;
+    default: return <BookOpen className={className} />;
+  }
+};
 
 export const CategoryView: React.FC<CategoryViewProps> = ({
   questions,
@@ -53,33 +105,38 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onGenerateCategoryQuestions,
   onSelectQuestionDirect,
   langMode = 'dual',
+  isUnlocked: isUnlockedProp = false,
 }) => {
-  const [activePortion, setActivePortion] = useState<'technical' | 'non-technical'>('technical');
-  const [selectedChapterId, setSelectedChapterId] = useState<number | null>(1);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [expandedChapterId, setExpandedChapterId] = useState<number | null>(1);
+  // Navigation hierarchy state:
+  // selectedSection: 'sec1' | 'sec2'
+  // selectedMainSubject: MainSubjectItem | null
+  // selectedChapter: ChapterHierarchyItem | null
+  // selectedTopic: TopicItem | null
+  const [selectedSection, setSelectedSection] = useState<'sec1' | 'sec2'>('sec1');
+  const [selectedMainSubject, setSelectedMainSubject] = useState<MainSubjectItem | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<ChapterHierarchyItem | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<TopicItem | null>(null);
 
-  // Premium & Revealed Answers State
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  // Search & Difficulty Filters
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+
+  // Premium & Answer Reveal state
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isUnlockedProp || getIsPremiumUnlocked());
   const [revealedIds, setRevealedIds] = useState<number[]>([]);
   const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
   const [modalMessage, setModalMessage] = useState<string | undefined>(undefined);
   const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({});
 
-  React.useEffect(() => {
-    setIsUnlocked(getIsPremiumUnlocked());
+  useEffect(() => {
+    setIsUnlocked(isUnlockedProp || getIsPremiumUnlocked());
     setRevealedIds(getRevealedAnswerIds());
-  }, []);
-
-  const refreshPremiumState = () => {
-    setIsUnlocked(getIsPremiumUnlocked());
-    setRevealedIds(getRevealedAnswerIds());
-  };
+  }, [isUnlockedProp]);
 
   const FREE_LIMIT = 15;
   const revealedCount = revealedIds.length;
 
-  const handleToggleAnswerCategory = (questionId: number) => {
+  const handleToggleAnswer = (questionId: number) => {
     const isAlreadyRevealed = revealedIds.includes(questionId);
     const isExpanded = !!expandedCards[questionId];
 
@@ -116,16 +173,16 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
       setExpandedCards(prev => ({ ...prev, [questionId]: true }));
     } else {
       setModalMessage(
-        `तुम्ही विनामूल्य १५ प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे तपासण्यासाठी व अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `तुम्ही विनामूल्य १५ प्रश्नांची उत्तरे व स्पष्टीकरणे पाहिली आहेत! उर्वरित सर्व ३०००+ प्रश्नांची उत्तरे अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
     }
   };
 
-  const handleSelectChapterQuestion = (qId: number) => {
+  const handleSelectDirectQuestion = (qId: number) => {
     if (!isUnlocked && qId > 15) {
       setModalMessage(
-        `प्रश्न क्र. १५ च्या पुढील (Q#${qId}) सर्व प्रश्नांची उत्तरे व सराव अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
+        `प्रश्न क्र. १५ च्या पुढील (Q#${qId}) सर्व प्रश्न व सराव अनलॉक करण्यासाठी प्रीमियम व्हर्जन ॲक्टिव्हेट करा 🔒`
       );
       setShowUnlockModal(true);
       return;
@@ -133,365 +190,598 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
     onSelectQuestionDirect(qId);
   };
 
-  // Auto switch portion if a non-technical category is selected
-  React.useEffect(() => {
-    if (selectedCategoryFilter) {
-      if (
-        selectedCategoryFilter.includes('Marathi') || 
-        selectedCategoryFilter.includes('English') || 
-        selectedCategoryFilter.includes('General Knowledge') || 
-        selectedCategoryFilter.includes('Logical') ||
-        selectedCategoryFilter.includes('Non-Technical')
-      ) {
-        setActivePortion('non-technical');
-      } else {
-        setActivePortion('technical');
+  // Filter 30 Main Subjects based on selected section or search
+  const filteredMainSubjects = useMemo(() => {
+    return MAIN_SUBJECTS_30.filter(subj => {
+      const matchSection = subj.section === 'both' || subj.section === selectedSection;
+      if (!searchQuery.trim()) return matchSection;
+
+      const qLower = searchQuery.toLowerCase();
+      const matchSearch = 
+        subj.titleEn.toLowerCase().includes(qLower) ||
+        subj.titleMr.toLowerCase().includes(qLower) ||
+        subj.titleHi.toLowerCase().includes(qLower) ||
+        subj.numberStr.includes(qLower) ||
+        subj.chapters.some(c => 
+          c.titleEn.toLowerCase().includes(qLower) ||
+          c.titleMr.toLowerCase().includes(qLower) ||
+          c.topics.some(t => t.titleEn.toLowerCase().includes(qLower))
+        );
+
+      return matchSection && matchSearch;
+    });
+  }, [selectedSection, searchQuery]);
+
+  // Questions matching active drilldown context (Subject / Chapter / Topic / Search / Difficulty)
+  const contextQuestions = useMemo(() => {
+    return questions.filter(q => {
+      // 1. Check Subject/Chapter match if selected
+      if (selectedMainSubject) {
+        if (selectedChapter) {
+          if (selectedTopic) {
+            // Match topic keyword or category
+            const topicText = `${selectedTopic.titleEn} ${selectedTopic.titleMr}`.toLowerCase();
+            const qText = `${q.question} ${q.question_mr || ''} ${q.topic || ''}`.toLowerCase();
+            const isTopicMatch = topicText.split(' ').some(word => word.length > 3 && qText.includes(word));
+            if (!isTopicMatch && q.category !== selectedChapter.categoryKey) return false;
+          } else {
+            // Match Chapter category
+            if (q.category !== selectedChapter.categoryKey && q.chapterId !== selectedMainSubject.id) {
+              const chText = `${selectedChapter.titleEn} ${selectedChapter.titleMr}`.toLowerCase();
+              const qText = `${q.question} ${q.question_mr || ''} ${q.category || ''}`.toLowerCase();
+              const matchText = chText.split(' ').some(word => word.length > 4 && qText.includes(word));
+              if (!matchText) return false;
+            }
+          }
+        } else {
+          // Match Main Subject category or ID
+          if (q.category !== selectedMainSubject.chapters[0]?.categoryKey && q.chapterId !== selectedMainSubject.id) {
+            const subjText = `${selectedMainSubject.titleEn} ${selectedMainSubject.titleMr}`.toLowerCase();
+            const qText = `${q.question} ${q.question_mr || ''} ${q.category || ''}`.toLowerCase();
+            const matchSubj = subjText.split(' ').some(w => w.length > 4 && qText.includes(w));
+            if (!matchSubj) return false;
+          }
+        }
       }
-    }
-  }, [selectedCategoryFilter]);
 
-  // Technical Chapters (Chapters 1 to 28)
-  const technicalChapters = ALL_30_CHAPTERS.filter(c => c.id <= 28);
+      // 2. Search Query filter
+      if (searchQuery.trim()) {
+        const qLower = searchQuery.toLowerCase();
+        const matchesQ = 
+          q.question.toLowerCase().includes(qLower) ||
+          (q.question_mr && q.question_mr.toLowerCase().includes(qLower)) ||
+          (q.question_hi && q.question_hi.toLowerCase().includes(qLower)) ||
+          q.category.toLowerCase().includes(qLower) ||
+          (q.topic && q.topic.toLowerCase().includes(qLower));
+        if (!matchesQ) return false;
+      }
 
-  const displayedTechnicalChapters = selectedCategoryFilter && activePortion === 'technical'
-    ? technicalChapters.filter(c => c.category === selectedCategoryFilter)
-    : technicalChapters;
+      // 3. Difficulty Filter
+      if (selectedDifficulty !== 'all') {
+        if (selectedDifficulty === 'pyq') {
+          return q.id % 3 === 0 || q.question.toLowerCase().includes('dhs') || q.question.toLowerCase().includes('aiims');
+        } else if (selectedDifficulty === 'expected') {
+          return q.id % 2 === 1;
+        } else {
+          return q.difficulty === selectedDifficulty || (!q.difficulty && selectedDifficulty === 'medium');
+        }
+      }
 
-  // Non-Technical Topics
-  const nonTechnicalTopics = [
-    {
-      id: 29,
-      title: 'मराठी व्याकरण व शब्दसंग्रह',
-      titleEn: 'Marathi Grammar & Vocabulary',
-      category: 'Marathi Language (मराठी भाषा)',
-      desc: 'समास, प्रयोग, मनी व वाक्प्रचार, लिंग-वचन विचार, समानार्थी व विरुद्धार्थी शब्द.'
-    },
-    {
-      id: 30,
-      title: 'इंग्रजी व्याकरण व व्होकॅब्युलरी',
-      titleEn: 'English Grammar & Vocabulary',
-      category: 'English Language',
-      desc: 'Tenses, Direct/Indirect speech, Prepositions, Idioms & Phrases, Synonyms/Antonyms.'
-    },
-    {
-      id: 31,
-      title: 'सामान्य ज्ञान व चालू घडामोडी',
-      titleEn: 'General Knowledge & Current Affairs',
-      category: 'General Knowledge (सामान्य ज्ञान)',
-      desc: 'महाराष्ट्राचा इतिहास व भूगोल, राज्यघटना, सार्वजनिक आरोग्य योजना, चालू घडामोडी.'
-    },
-    {
-      id: 32,
-      title: 'बौद्धिक चाचणी व अंकगणित',
-      titleEn: 'Logical Reasoning & Quantitative Aptitude',
-      category: 'Logical Ability & Mathematics (बौद्धिक चाचणी)',
-      desc: 'संख्यामाला, नातेसंबंध, कोडिंग-डिकोडिंग, नफा-तोटा, टक्केवारी व बुद्धिमत्ता चाचणी.'
-    }
-  ];
-
-  // Technical Syllabus Subtopics (Section 5: Subject Related Knowledge - a to j)
-  const technicalSyllabusSubtopics = [
-    {
-      key: '5a',
-      letter: 'a',
-      title: 'RADIOPHYSICS (HISTORY/PRINCIPLE) - X-RAY, C-ARM, CT, MRI, MAMMOGRAPHY',
-      titleMr: 'अ) रेडिओफिजिक्स (इतिहास/तत्त्वे) - क्ष-किरण मशीन, सी-आर्म, सी.टी. स्कॅन, एम.आर.आय., मॅमोग्राफी',
-      desc: 'Discovery of X-rays, production principles, electromagnetic spectrum, tube construction & x-ray physics.',
-      categoryMatch: 'Technical: Radiophysics & Machine Principles',
-      keywords: ['x-ray', 'roentgen', 'tube', 'kvp', 'mas', 'radiophysics', 'c-arm', 'mri', 'ct']
-    },
-    {
-      key: '5b',
-      letter: 'b',
-      title: 'TYPES OF MACHINE AND THEIR PRINCIPLE WITH DETAILED KNOWLEDGE',
-      titleMr: 'ब) मशीनचे प्रकार व कार्यप्रणालीची सविस्तर माहिती (Machine Principles)',
-      desc: 'Portable, fixed X-ray units, Fluoroscopy, C-Arm, CT scanners, High Tesla MRI magnet principles.',
-      categoryMatch: 'Technical: Radiophysics & Machine Principles',
-      keywords: ['machine', 'generator', 'rectifier', 'anode', 'cathode', 'fluoroscopy', 'grid']
-    },
-    {
-      key: '5c',
-      letter: 'c',
-      title: 'ANATOMY & PHYSIOLOGY WITH RADIOGRAPHIC POSITIONING (X-Ray/C-Arm/MRI/Mammography)',
-      titleMr: 'क) शरीरशास्त्र, फिजियोलॉजी व क्ष-किरण, सी-आर्म, एमआरआय व मॅमोग्राफी पोझिशनिंग',
-      desc: 'Upper & lower extremity, chest, abdomen, spine, skull positioning & special radiographic projections.',
-      categoryMatch: 'Technical: Anatomy & Radiographic Positioning',
-      keywords: ['anatomy', 'position', 'projection', 'chest', 'spine', 'skull', 'view', 'flexion']
-    },
-    {
-      key: '5d',
-      letter: 'd',
-      title: 'DIFFERENT TYPES OF FILMS & SOLUTIONS (CHEMICAL NATURE & CLINICAL IMPORTANCE)',
-      titleMr: 'ड) क्ष-किरण फिल्म्सचे प्रकार, रसायने (Developer & Fixer) व क्लिनिकल महत्त्व',
-      desc: 'Screen/non-screen films, emulsion, developer (Hydroquinone), fixer (Thiosulfate) chemistry & darkroom.',
-      categoryMatch: 'Technical: Films, Contrast Media & Digital DR/PACS',
-      keywords: ['film', 'developer', 'fixer', 'emulsion', 'darkroom', 'safelight', 'processing', 'solution']
-    },
-    {
-      key: '5e',
-      letter: 'e',
-      title: 'CONTRAST DYES - TYPES, HAZARDS & EMERGENCY MANAGEMENT',
-      titleMr: 'इ) कॉन्ट्रास्ट डायचे प्रकार, वापर, धोके व आणीबाणी व्यवस्थापन (Anaphylaxis & CPR)',
-      desc: 'Barium sulphate, ionic/non-ionic iodinated contrast, adverse reactions, CPR, oxygen & shock care.',
-      categoryMatch: 'Technical: Films, Contrast Media & Digital DR/PACS',
-      keywords: ['contrast', 'barium', 'iodine', 'reaction', 'anaphylaxis', 'emergency', 'cpr', 'shock']
-    },
-    {
-      key: '5f',
-      letter: 'f',
-      title: 'RADIATION HAZARDS AND PRECAUTION MEASURES (RADIATION PROTECTION)',
-      titleMr: 'फ) रेडिएशन धोके व प्रतिबंधात्मक उपाय (ALARA, Lead Apron, TLD, AERB)',
-      desc: 'Somatic/genetic biological effects, ALARA rules, time-distance-shielding, TLD badges & lead aprons.',
-      categoryMatch: 'Technical: Radiation Protection & Hazards',
-      keywords: ['radiation', 'protection', 'alara', 'tld', 'lead', 'apron', 'aerb', 'dosimeter', 'shielding']
-    },
-    {
-      key: '5g',
-      letter: 'g',
-      title: 'MAMMOGRAPHY / C-ARM / DIGITAL RADIOGRAPHY (CR/DR) / PACS WORKING PRINCIPLE',
-      titleMr: 'छ) मॅमोग्राफी, सी-आर्म, डिजिटल रेडिओोग्राफी (CR/DR) व PACS कार्यप्रणाली',
-      desc: 'Molybdenum target, photostimulable phosphor, flat panel detectors, DICOM standards, PACS networks.',
-      categoryMatch: 'Technical: Films, Contrast Media & Digital DR/PACS',
-      keywords: ['pacs', 'dicom', 'digital', 'cr', 'dr', 'mammography', 'c-arm', 'flat panel']
-    },
-    {
-      key: '5h',
-      letter: 'h',
-      title: 'C.T. / M.R.I. / RADIOTHERAPY / LITHOTRIPSY - HISTORY, PROCEDURE & COMPLICATIONS',
-      titleMr: 'ज) सी.टी., एम.आर.आय., रेडिओथेरपी व लिथोट्रिप्सी प्रक्रिया व गुंतागुंत व्यवस्थापन',
-      desc: 'Hounsfield units, CT generations, MRI RF pulses, Linear Accelerator, Teletherapy & Lithotripsy.',
-      categoryMatch: 'Technical: Advanced Modalities CT/MRI/Radiotherapy',
-      keywords: ['ct', 'mri', 'radiotherapy', 'lithotripsy', 'hounsfield', 'tesla', 'linear accelerator']
-    },
-    {
-      key: '5i',
-      letter: 'i',
-      title: 'BIOMEDICAL WASTE MANAGEMENT (BMW)',
-      titleMr: 'झ) जैववैद्यकीय कचरा व्यवस्थापन (Biomedical Waste Management - Color Codes)',
-      desc: 'Segregation into Yellow, Red, Blue, White containers, biohazard disposal & infection control.',
-      categoryMatch: 'Technical: Radiation Protection & Hazards',
-      keywords: ['waste', 'biomedical', 'bmw', 'yellow', 'red', 'blue', 'biohazard', 'disposal']
-    },
-    {
-      key: '5j',
-      letter: 'j',
-      title: 'EQUIPMENT MAINTENANCE & RESPONSIBILITIES / RECORD KEEPING',
-      titleMr: 'ञ) उपकरणांची देखभाल, हाताळणीची जबाबदारी व दस्तऐवजीकरण (Record Keeping)',
-      desc: 'Daily QA checks, preventive maintenance, radiation register, patient logbook & AERB compliance.',
-      categoryMatch: 'Technical: Advanced Modalities CT/MRI/Radiotherapy',
-      keywords: ['maintenance', 'record', 'logbook', 'quality', 'responsibility', 'aerb', 'register']
-    }
-  ];
-
-  // Selected Subtopic Filter (null means all subtopics)
-  const [selectedSubtopicKey, setSelectedSubtopicKey] = useState<string | null>(null);
-
-  // Helper to get questions for a specific chapter/category
-  const getQuestionsForChapter = (chapter: ChapterItem) => {
-    return questions.filter(q => q.category === chapter.category || (q.chapterId && q.chapterId === chapter.id));
-  };
-
-  // Search filtered questions across all questions
-  const searchFilteredQuestions = questions.filter(q => {
-    if (!searchQuery.trim()) return true;
-    const qLower = searchQuery.toLowerCase();
-    return (
-      q.question.toLowerCase().includes(qLower) ||
-      (q.question_mr && q.question_mr.includes(qLower)) ||
-      q.category.toLowerCase().includes(qLower)
-    );
-  });
+      return true;
+    });
+  }, [questions, selectedMainSubject, selectedChapter, selectedTopic, searchQuery, selectedDifficulty]);
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in text-slate-100">
+      {/* Premium Unlock Modal */}
+      {showUnlockModal && (
+        <PremiumUnlockModal
+          onClose={() => setShowUnlockModal(false)}
+          onSuccessUnlock={() => {
+            setIsUnlocked(true);
+            setShowUnlockModal(false);
+          }}
+          customMessage={modalMessage}
+        />
+      )}
+
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 border border-teal-500/30 rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-teal-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         <div className="relative z-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
             <Award className="w-3.5 h-3.5 text-teal-400" />
-            <span>महाराष्ट्र आरोग्य विभाग गट 'क' परीक्षा पॅटर्न (२०० गुण)</span>
+            <span>Structured MCQ Learning Platform (३०००+ प्रश्नसंच)</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            विषय व प्रकरणांनुसार सराव वर्गीकरण (Syllabus Portion)
+            विषय व प्रकरणांनुसार सराव (Chapter & Topic Hierarchy)
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
-            अभ्यासाच्या सोयीसाठी परीक्षेचे दोन प्रमुख विभाग केले आहेत - तांत्रिकी (Technical 80 Marks) व बिगर-तांत्रिकी (Non-Technical 120 Marks). प्रत्येक प्रकरणातील प्रश्न खाली पाहा व सराव करा.
+            अभ्यासाच्या सुलभतेसाठी ३० मुख्य विषय, प्रकरणे व घटकांची रचना करण्यात आली आहे. आपल्या परीक्षेनुसार विभाग निवडा व सराव सुरू करा.
           </p>
         </div>
       </div>
 
-      {/* Active Category Filter Indicator Banner */}
-      {selectedCategoryFilter && (
-        <div className="bg-teal-950/80 border border-teal-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-teal-400 shrink-0" />
-            <div>
-              <div className="text-[11px] text-teal-300 font-extrabold uppercase tracking-wider">निवडलेला विषय / कॅटेगिरी (Selected Category)</div>
-              <div className="text-sm sm:text-base font-black text-white">{selectedCategoryFilter}</div>
-            </div>
-          </div>
-          {onSelectCategoryFilter && (
+      {/* Section Switcher (Section 1 vs Section 2) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {SECTIONS_DATA.map((sec) => {
+          const isActive = selectedSection === sec.id;
+          return (
             <button
-              onClick={() => onSelectCategoryFilter(null)}
-              className="bg-slate-800 hover:bg-slate-700 text-teal-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-teal-500/30 transition-all self-end sm:self-auto"
+              key={sec.id}
+              onClick={() => {
+                setSelectedSection(sec.id);
+                setSelectedMainSubject(null);
+                setSelectedChapter(null);
+                setSelectedTopic(null);
+              }}
+              className={`text-left p-5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between space-y-3 ${
+                isActive
+                  ? 'bg-gradient-to-br from-slate-900 to-indigo-950 border-teal-400 ring-2 ring-teal-400/40 shadow-xl'
+                  : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+              }`}
             >
-              ✕ सर्व प्रकरणे पाहा (Show All Chapters)
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Main Portion Tabs: Technical vs Non-Technical */}
-      <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
-        <button
-          onClick={() => setActivePortion('technical')}
-          className={`flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
-            activePortion === 'technical'
-              ? 'bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 shadow-lg shadow-teal-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
-        >
-          <Award className="w-4 h-4 stroke-[2.5]" />
-          <span>१. तांत्रिकी विभाग (Technical Radiography)</span>
-        </button>
-
-        <button
-          onClick={() => setActivePortion('non-technical')}
-          className={`flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
-            activePortion === 'non-technical'
-              ? 'bg-gradient-to-r from-amber-500 to-teal-400 text-slate-950 shadow-lg shadow-amber-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
-        >
-          <BookOpen className="w-4 h-4 stroke-[2.5]" />
-          <span>२. अ-तांत्रिकी विभाग (Non-Technical Subjects)</span>
-        </button>
-      </div>
-
-      {/* PORTION 1: TECHNICAL CHAPTERS & OFFICIAL SUBTOPICS (a to j) */}
-      {activePortion === 'technical' && (
-        <div className="space-y-8">
-          {/* SECTION 5 SYLLABUS CLAUSES (a to j) BREAKDOWN */}
-          <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-6 space-y-6 shadow-2xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30 mb-2">
-                  <Award className="w-3.5 h-3.5 text-teal-400" />
-                  <span>अधिकृत तांत्रिकी अभ्यासक्रम घटक (Section 5)</span>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                    isActive ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'
+                  }`}>
+                    {sec.badgeMr}
+                  </span>
+                  <span className="text-xs font-bold text-teal-400">{sec.languagesMr}</span>
                 </div>
-                <h2 className="text-xl font-black text-white tracking-tight">
-                  विषयानुसार तांत्रिकी प्रश्नसंच शॉटलिस्ट (Categories 5a to 5j)
-                </h2>
-                <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                  आरोग्य विभाग क्ष-किरण वैज्ञानिक अधिकारी परीक्षेच्या अधिकृत अभ्यासक्रमातील घटकांनुसार (a ते j) संबंधित प्रकरणे व प्रश्न पाहा.
+
+                <h3 className="text-base font-extrabold text-white">
+                  {sec.titleMr}
+                </h3>
+
+                <p className="text-xs text-slate-300 leading-snug">
+                  {sec.descriptionMr}
                 </p>
               </div>
 
-              {selectedSubtopicKey && (
-                <button
-                  onClick={() => setSelectedSubtopicKey(null)}
-                  className="bg-slate-800 hover:bg-slate-700 text-teal-300 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-slate-700 self-start"
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-400">
+                  {sec.id === 'sec1' ? 'मराठी + इंग्रजी माध्यम' : 'हिंदी + इंग्रजी माध्यम'}
+                </span>
+                <span className={`flex items-center gap-1 ${isActive ? 'text-teal-300' : 'text-slate-500'}`}>
+                  <span>{isActive ? 'सक्रिय विभाग ✓' : 'हा विभाग निवडा'}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Interactive Breadcrumb Bar */}
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold shadow-md">
+        <button
+          onClick={() => {
+            setSelectedMainSubject(null);
+            setSelectedChapter(null);
+            setSelectedTopic(null);
+          }}
+          className="text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1"
+        >
+          <span>🏠 मुख्य दालन</span>
+        </button>
+
+        <span className="text-slate-600">/</span>
+
+        <span className="text-slate-300">
+          {selectedSection === 'sec1' ? 'महाराष्ट्र सार्वजनिक आरोग्य विभाग' : 'केंद्र सरकार परीक्षा'}
+        </span>
+
+        {selectedMainSubject && (
+          <>
+            <span className="text-slate-600">/</span>
+            <button
+              onClick={() => {
+                setSelectedChapter(null);
+                setSelectedTopic(null);
+              }}
+              className="text-teal-400 hover:text-teal-300 hover:underline"
+            >
+              {selectedMainSubject.numberStr}. {selectedMainSubject.titleMr}
+            </button>
+          </>
+        )}
+
+        {selectedChapter && (
+          <>
+            <span className="text-slate-600">/</span>
+            <button
+              onClick={() => setSelectedTopic(null)}
+              className="text-teal-400 hover:text-teal-300 hover:underline"
+            >
+              {selectedChapter.chapterNumber}: {selectedChapter.titleMr}
+            </button>
+          </>
+        )}
+
+        {selectedTopic && (
+          <>
+            <span className="text-slate-600">/</span>
+            <span className="text-emerald-400 font-bold">
+              {selectedTopic.topicNumber}: {selectedTopic.titleMr}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Search Input Bar & Difficulty Filters */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
+        <div className="relative">
+          <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="मुख्य विषय, प्रकरण, घटक किंवा प्रश्न शोधा (Search Subject, Chapter, Topic or Question)..."
+            className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-all"
+          />
+        </div>
+
+        {/* Difficulty Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+          <span className="text-slate-400 font-bold flex items-center gap-1 shrink-0">
+            <Filter className="w-3.5 h-3.5 text-teal-400" />
+            <span>काठिण्य पातळी:</span>
+          </span>
+
+          {[
+            { id: 'all', label: 'सर्व प्रश्न (All MCQs)' },
+            { id: 'very_easy', label: 'अतिशय सोपे (Very Easy)' },
+            { id: 'easy', label: 'सोपे (Easy)' },
+            { id: 'medium', label: 'मध्यम (Medium)' },
+            { id: 'hard', label: 'कठीण (Hard)' },
+            { id: 'pyq', label: 'मागील वर्षाचे प्रश्न (PYQ)' },
+            { id: 'expected', label: 'संभाव्य प्रश्न (Expected)' },
+          ].map((diff) => (
+            <button
+              key={diff.id}
+              onClick={() => setSelectedDifficulty(diff.id)}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 border ${
+                selectedDifficulty === diff.id
+                  ? 'bg-teal-500 text-slate-950 border-teal-400 shadow'
+                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              {diff.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* LEVEL 1: MAIN SUBJECTS GRID (When no main subject is actively selected) */}
+      {!selectedMainSubject && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <Award className="w-5 h-5 text-teal-400" />
+              <span>मुख्य विषय सूची (३० Main Subjects)</span>
+            </h2>
+            <span className="text-xs font-bold text-slate-400">
+              {filteredMainSubjects.length} विषय उपलब्ध
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredMainSubjects.map((subject) => {
+              const totalChaps = subject.chapters.length;
+              const totalQuestionsInSubj = subject.chapters.reduce((acc, c) => acc + c.questionCount, 0);
+
+              return (
+                <div
+                  key={subject.id}
+                  onClick={() => setSelectedMainSubject(subject)}
+                  className="bg-slate-900 border border-slate-800 hover:border-teal-500/60 rounded-2xl p-5 hover:bg-slate-850 transition-all cursor-pointer group space-y-4 flex flex-col justify-between shadow-lg relative overflow-hidden"
                 >
-                  ✕ सर्व घटक पाहा (Show All)
-                </button>
-              )}
-            </div>
-
-            {/* Subtopic Grid (5a to 5j) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
-              {technicalSyllabusSubtopics.map((sub) => {
-                const isSelected = selectedSubtopicKey === sub.key;
-
-                // Find questions matching this subtopic
-                const matchingQuestions = questions.filter(q => {
-                  if (q.category === sub.categoryMatch) return true;
-                  const qText = `${q.question} ${q.question_mr || ''}`.toLowerCase();
-                  return sub.keywords.some(kw => qText.includes(kw));
-                });
-
-                return (
-                  <div
-                    key={sub.key}
-                    onClick={() => {
-                      setSelectedSubtopicKey(isSelected ? null : sub.key);
-                      if (onSelectCategoryFilter) {
-                        onSelectCategoryFilter(sub.categoryMatch);
-                      }
-                    }}
-                    className={`cursor-pointer bg-slate-950 p-4 rounded-2xl border transition-all space-y-2 flex flex-col justify-between ${
-                      isSelected 
-                        ? 'border-teal-400 bg-teal-950/30 ring-2 ring-teal-400/40 shadow-lg' 
-                        : 'border-slate-800 hover:border-teal-500/50 hover:bg-slate-850'
-                    }`}
-                  >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-xs font-mono bg-teal-500/20 text-teal-300 px-2.5 py-0.5 rounded-full border border-teal-500/30">
-                          Clause 5({sub.letter})
-                        </span>
-                        <span className="text-[11px] font-bold text-teal-300 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-500/20">
-                          संबंधित प्रकरणे पाहा &rarr;
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2.5 rounded-xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
+                          {getSubjectIcon(subject.iconName, "w-5 h-5")}
+                        </div>
+                        <span className="text-xs font-black font-mono bg-slate-950 text-teal-300 px-2.5 py-1 rounded-lg border border-slate-800">
+                          {subject.numberStr}
                         </span>
                       </div>
-
-                      <h3 className="text-xs sm:text-sm font-bold text-white leading-snug">
-                        {sub.titleMr}
-                      </h3>
-
-                      <p className="text-[11px] text-slate-400 font-sans italic line-clamp-1">
-                        {sub.title}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-850 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px] font-medium">{sub.desc}</span>
-                      <span className="text-teal-400 font-bold group-hover:underline flex items-center gap-1 text-[11px]">
-                        <span>{isSelected ? 'प्रश्न लपवा' : 'प्रश्न शॉर्टलिस्ट'}</span>
-                        <Eye className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-extrabold text-teal-400 bg-teal-950/60 px-2.5 py-1 rounded-full border border-teal-500/30">
+                        १५ मोफत प्रश्न (15 Free)
                       </span>
                     </div>
 
-                    {/* Expanded Questions for this specific subtopic clause */}
-                    {isSelected && (
-                      <div className="pt-3 border-t border-teal-500/30 space-y-2 animate-fade-in">
-                        <div className="flex items-center justify-between text-xs font-bold text-teal-300">
-                          <span>५({sub.letter}) घटकातील शॉर्टलिस्ट केलेले प्रश्न:</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onStartQuizCategory(sub.categoryMatch);
-                            }}
-                            className="bg-teal-400 hover:bg-teal-300 text-slate-950 px-2.5 py-1 rounded-lg text-[10px] font-black"
-                          >
-                            या घटकाचा सराव करा &rarr;
-                          </button>
+                    <div>
+                      {langMode === 'mr' ? (
+                        <>
+                          <h3 className="text-base font-black text-white group-hover:text-teal-300 transition-colors">
+                            {selectedSection === 'sec1' ? subject.titleMr : subject.titleHi || subject.titleMr}
+                          </h3>
+                          <p className="text-xs text-slate-300 font-bold mt-0.5">
+                            {subject.titleEn}
+                          </p>
+                        </>
+                      ) : langMode === 'en' ? (
+                        <>
+                          <h3 className="text-base font-black text-white group-hover:text-teal-300 transition-colors">
+                            {subject.titleEn}
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {selectedSection === 'sec1' ? subject.titleMr : subject.titleHi || subject.titleMr}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-base font-black text-white group-hover:text-teal-300 transition-colors">
+                            {subject.titleEn}
+                          </h3>
+                          <p className="text-xs text-teal-300 font-extrabold mt-0.5">
+                            {selectedSection === 'sec1' ? subject.titleMr : subject.titleHi || subject.titleMr}
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                      {selectedSection === 'sec1' ? subject.descriptionMr : subject.descriptionHi || subject.descriptionMr}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="w-3.5 h-3.5 text-teal-400" />
+                        <span>{totalChaps} प्रकरणे (Chapters)</span>
+                      </span>
+                      <span className="text-teal-300">{totalQuestionsInSubj}+ प्रश्न</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMainSubject(subject);
+                        }}
+                        className="flex-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition-all shadow-md"
+                      >
+                        <span>प्रकरणे उघडा</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartQuizCategory(subject.chapters[0]?.categoryKey || 'Technical: Radiophysics & Machine Principles');
+                        }}
+                        className="bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1 border border-slate-700 transition-all"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-teal-300" />
+                        <span>सराव</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* LEVEL 2 & 3: CHAPTERS & TOPICS UNDER SELECTED MAIN SUBJECT */}
+      {selectedMainSubject && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Back button & Subject Title Header */}
+          <div className="bg-slate-900 border border-teal-500/30 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => {
+                  setSelectedMainSubject(null);
+                  setSelectedChapter(null);
+                  setSelectedTopic(null);
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-teal-300 p-2.5 rounded-xl border border-slate-700 transition-all shrink-0 mt-0.5"
+                title="मागे जा"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black font-mono bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">
+                    Subject #{selectedMainSubject.numberStr}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">{selectedMainSubject.titleEn}</span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  {selectedSection === 'sec1' ? selectedMainSubject.titleMr : selectedMainSubject.titleHi || selectedMainSubject.titleMr}
+                </h2>
+
+                <p className="text-xs text-slate-300">
+                  {selectedSection === 'sec1' ? selectedMainSubject.descriptionMr : selectedMainSubject.descriptionHi || selectedMainSubject.descriptionMr}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onStartQuizCategory(selectedMainSubject.chapters[0]?.categoryKey || 'Technical: Radiophysics & Machine Principles')}
+              className="bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-teal-500/20 transition-all self-stretch md:self-auto"
+            >
+              <Play className="w-4 h-4 fill-slate-950" />
+              <span>या संपूर्ण विषयाची चाचणी सुरू करा &rarr;</span>
+            </button>
+          </div>
+
+          {/* Chapters Accordion / List */}
+          <div className="space-y-4">
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-teal-400" />
+              <span>प्रकरणांची यादी (Chapters List)</span>
+            </h3>
+
+            <div className="space-y-4">
+              {selectedMainSubject.chapters.map((chapter) => {
+                const isSelectedCh = selectedChapter?.id === chapter.id;
+
+                return (
+                  <div
+                    key={chapter.id}
+                    className={`bg-slate-900 border rounded-2xl transition-all overflow-hidden ${
+                      isSelectedCh
+                        ? 'border-teal-400 ring-2 ring-teal-400/30 shadow-2xl bg-slate-900'
+                        : 'border-slate-800 hover:border-teal-500/50'
+                    }`}
+                  >
+                    {/* Chapter Header */}
+                    <div
+                      onClick={() => {
+                        setSelectedChapter(isSelectedCh ? null : chapter);
+                        setSelectedTopic(null);
+                      }}
+                      className="p-5 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 hover:bg-slate-850"
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black font-mono bg-teal-500/20 text-teal-300 px-2.5 py-0.5 rounded-full border border-teal-500/30">
+                            {chapter.chapterNumber}
+                          </span>
+                          <span className="text-xs font-extrabold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                            पहिले १५ प्रश्न विनामूल्य (First 15 Free)
+                          </span>
+                          <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{chapter.estimatedTime}</span>
+                          </span>
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                          {matchingQuestions.length > 0 ? (
-                            matchingQuestions.slice(0, 15).map((q) => (
+                        {langMode === 'mr' ? (
+                          <>
+                            <h4 className="text-base sm:text-lg font-black text-white">
+                              {selectedSection === 'sec1' ? chapter.titleMr : chapter.titleHi || chapter.titleMr}
+                            </h4>
+                            <p className="text-xs font-bold text-slate-300">
+                              {chapter.chapterNumber}: {chapter.titleEn}
+                            </p>
+                          </>
+                        ) : langMode === 'en' ? (
+                          <>
+                            <h4 className="text-base sm:text-lg font-black text-white">
+                              {chapter.chapterNumber}: {chapter.titleEn}
+                            </h4>
+                            <p className="text-xs text-slate-400">
+                              {selectedSection === 'sec1' ? chapter.titleMr : chapter.titleHi || chapter.titleMr}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <h4 className="text-base sm:text-lg font-black text-white leading-snug">
+                              {chapter.chapterNumber}: <span className="font-extrabold text-teal-200">{chapter.titleEn}</span>
+                            </h4>
+                            <p className="text-xs sm:text-sm font-extrabold text-teal-300 mt-0.5">
+                              {selectedSection === 'sec1' ? chapter.titleMr : chapter.titleHi || chapter.titleMr}
+                            </p>
+                          </>
+                        )}
+
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          {selectedSection === 'sec1' ? chapter.descriptionMr : chapter.descriptionHi || chapter.descriptionMr}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStartQuizCategory(chapter.categoryKey);
+                          }}
+                          className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1 shadow transition-all"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-slate-950" />
+                          <span>सराव परीक्षा</span>
+                        </button>
+
+                        <div className="p-2 bg-slate-800 rounded-xl text-teal-400">
+                          {isSelectedCh ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Level 3: Topics List inside Chapter */}
+                    {isSelectedCh && (
+                      <div className="border-t border-slate-800 p-5 bg-slate-950 space-y-4 animate-fade-in">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-extrabold text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Layers className="w-4 h-4 text-teal-400" />
+                            <span>{chapter.chapterNumber} घटकांची यादी (Topics Breakdown)</span>
+                          </h5>
+                          <span className="text-xs text-slate-400 font-bold">{chapter.topics.length} घटक</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {chapter.topics.map((tp) => {
+                            const isSelectedTp = selectedTopic?.id === tp.id;
+
+                            return (
                               <div
-                                key={q.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSelectQuestionDirect(q.id);
-                                }}
-                                className="bg-slate-900 hover:bg-slate-800 p-2.5 rounded-xl border border-slate-700/80 hover:border-teal-400 cursor-pointer transition-all space-y-1"
+                                key={tp.id}
+                                onClick={() => setSelectedTopic(isSelectedTp ? null : tp)}
+                                className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                                  isSelectedTp
+                                    ? 'bg-teal-950/40 border-teal-400 ring-1 ring-teal-400/40'
+                                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                                }`}
                               >
-                                <div className="flex items-center justify-between text-[10px] font-bold text-teal-300">
-                                  <span>Q#{q.id}</span>
-                                  <span className="text-emerald-400">उत्तर: {q.correct_answer_mr || q.correct_answer}</span>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-black font-mono bg-slate-950 text-teal-300 px-2 py-0.5 rounded border border-slate-800">
+                                    {tp.topicNumber}
+                                  </span>
+                                  <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-400" />
+                                    <span>{tp.estimatedTime}</span>
+                                  </span>
                                 </div>
-                                <p className="text-xs text-slate-100 font-medium line-clamp-2">
-                                  {q.question_mr || q.question}
-                                </p>
+
+                                {langMode === 'mr' ? (
+                                  <>
+                                    <h6 className="text-xs sm:text-sm font-extrabold text-white">
+                                      {selectedSection === 'sec1' ? tp.titleMr : tp.titleHi || tp.titleMr}
+                                    </h6>
+                                    <p className="text-[11px] font-bold text-slate-300">
+                                      {tp.topicNumber}: {tp.titleEn}
+                                    </p>
+                                  </>
+                                ) : langMode === 'en' ? (
+                                  <>
+                                    <h6 className="text-xs sm:text-sm font-black text-white">
+                                      {tp.topicNumber}: {tp.titleEn}
+                                    </h6>
+                                    <p className="text-[11px] text-slate-400">
+                                      {selectedSection === 'sec1' ? tp.titleMr : tp.titleHi || tp.titleMr}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <h6 className="text-xs sm:text-sm font-black text-white">
+                                      {tp.topicNumber}: <span className="font-extrabold text-teal-200">{tp.titleEn}</span>
+                                    </h6>
+                                    <p className="text-[11px] font-extrabold text-teal-300 mt-0.5">
+                                      {selectedSection === 'sec1' ? tp.titleMr : tp.titleHi || tp.titleMr}
+                                    </p>
+                                  </>
+                                )}
+
+                                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                                  <span className="text-teal-400 font-bold">{tp.questionCount} प्रश्न उपलब्ध</span>
+                                  <span className="text-slate-300 font-bold hover:underline">
+                                    {isSelectedTp ? 'प्रश्न बंद करा' : 'प्रश्न पाहा &rarr;'}
+                                  </span>
+                                </div>
                               </div>
-                            ))
-                          ) : (
-                            <p className="text-xs text-slate-400 italic p-2">या घटकासाठीचे सर्व प्रश्न प्रश्नसंचात उपलब्ध आहेत.</p>
-                          )}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -500,387 +790,159 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               })}
             </div>
           </div>
-
-          {/* CHAPTERWISE BREAKDOWN */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-teal-400" />
-                  <span>अध्यायनिहाय तांत्रिकी प्रकरणे (Technical Chapters)</span>
-                </h2>
-                <p className="text-xs text-slate-400">अध्यायानुसार सविस्तर अभ्यास व सराव चाचण्या</p>
-              </div>
-              <span className="text-xs font-bold bg-teal-500/10 text-teal-300 px-3 py-1 rounded-full border border-teal-500/20">
-                {displayedTechnicalChapters.length} प्रकरणे
-              </span>
-            </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedTechnicalChapters.map((chap) => {
-              const chapterQs = getQuestionsForChapter(chap);
-              const isExpanded = expandedChapterId === chap.id;
-
-              return (
-                <div
-                  key={chap.id}
-                  className={`bg-slate-900 border rounded-2xl p-5 space-y-4 transition-all flex flex-col justify-between shadow-lg ${
-                    isExpanded ? 'border-teal-400 bg-slate-850 ring-1 ring-teal-400/30' : 'border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                        {chap.part}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-slate-400">Chapter #{chap.id}</span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-white leading-snug">
-                      {langMode === 'mr' ? chap.titleMr : chap.title}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-2 pt-3 border-t border-slate-800">
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>सराव प्रश्नसंच</span>
-                      <button
-                        onClick={() => setExpandedChapterId(isExpanded ? null : chap.id)}
-                        className="text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 text-[11px]"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{isExpanded ? 'प्रश्न लपवा' : 'प्रश्न पाहा'}</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => onStartQuizCategory(chap.category)}
-                        className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110 text-slate-950 font-extrabold py-2 px-2 rounded-xl text-xs transition-all"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-slate-950" />
-                        <span>सराव करा</span>
-                      </button>
-
-                      <button
-                        onClick={() => onStartQuizCategory(chap.category)}
-                        className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-extrabold py-2 px-2 rounded-xl text-xs border border-amber-500/30 transition-all"
-                      >
-                        <Zap className="w-3.5 h-3.5 text-amber-400" />
-                        <span>माॉक टेस्ट</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Expanded Chapter Questions Preview */}
-                  {isExpanded && (
-                    <div className="pt-3 border-t border-slate-800 space-y-2.5 animate-fade-in">
-                      <h4 className="text-xs font-bold text-teal-300 flex items-center justify-between">
-                        <span>अध्यायातील सराव प्रश्न यादी:</span>
-                      </h4>
-
-                      <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
-                        {chapterQs.length > 0 ? (
-                          chapterQs.map((q) => (
-                            <div
-                              key={q.id}
-                              onClick={() => handleSelectChapterQuestion(q.id)}
-                              className="bg-slate-950 hover:bg-slate-800 p-2.5 rounded-xl border border-slate-800 hover:border-teal-500/40 cursor-pointer text-left transition-all space-y-1"
-                            >
-                              <div className="flex items-center justify-between text-[10px] font-bold text-teal-400">
-                                <span>#Q{q.id}</span>
-                                {isUnlocked || q.id <= 15 ? (
-                                  <span className="text-teal-300 font-semibold flex items-center gap-1">
-                                    <Eye className="w-3 h-3 text-teal-400" />
-                                    <span>उत्तर गुप्त (सराव करा)</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-amber-400 font-bold flex items-center gap-1">
-                                    <Lock className="w-3 h-3 text-amber-400" />
-                                    <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-slate-200 line-clamp-2">
-                                {q.question_mr || q.question}
-                              </p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs text-slate-400 italic p-2">या अध्यायातील सर्व सराव प्रश्न उपलब्ध आहेत. चाचणी सुरू करण्यासाठी 'सराव करा' वर क्लिक करा.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-      )}
-
-      {/* PORTION 2: NON-TECHNICAL SUBJECTS */}
-      {activePortion === 'non-technical' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div>
-              <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" />
-                <span>अ-तांत्रिकी घटक (Non-Technical Subjects)</span>
-              </h2>
-              <p className="text-xs text-slate-400">मराठी, इंग्रजी, सामान्य ज्ञान व बौद्धिक चाचणी प्रकरणे</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {nonTechnicalTopics.map((nt) => (
-              <div
-                key={nt.id}
-                className="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-6 space-y-4 transition-all shadow-xl flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      संबंधित प्रकरण
-                    </span>
-                    <span className="text-xs font-mono text-slate-400">Non-Tech Topic</span>
-                  </div>
-
-                  <h3 className="text-base font-extrabold text-white">
-                    {nt.title}
-                  </h3>
-                  <p className="text-xs text-teal-300 font-medium">
-                    {nt.titleEn}
-                  </p>
-                  <p className="text-xs text-slate-300 leading-relaxed pt-1">
-                    {nt.desc}
-                  </p>
-                </div>
-
-                <div className="space-y-2 pt-3 border-t border-slate-800">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>सराव प्रश्नसंच</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => onStartQuizCategory(nt.category)}
-                      className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110 text-slate-950 font-extrabold py-2 px-3 rounded-xl text-xs transition-all"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-slate-950" />
-                      <span>सराव चाचणी</span>
-                    </button>
-
-                    <button
-                      onClick={() => onStartQuizCategory(nt.category)}
-                      className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-extrabold py-2 px-3 rounded-xl text-xs border border-amber-500/30 transition-all"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span>माॉक टेस्ट</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* ALL QUESTIONS SEARCH & INSPECTION SECTION (syllabus sobat jodala aahe) */}
-      <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-6 space-y-6 shadow-2xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30">
-              <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-              <span>उपलब्ध प्रश्न यादी ({questions.length} / {questions.length})</span>
-            </div>
-            <h2 className="text-lg font-black text-white tracking-tight">
-              आपल्या चालू प्रश्नसंचातील सर्व प्रश्न शोधा व तपासा - सर्व प्रश्न यादी (Search & Inspect)
-            </h2>
-            <p className="text-xs text-slate-400">
-              सर्व ३० अध्यायांमधील ३०००+ प्रश्नांचा शोध घ्या, उत्तरे व स्पष्टीकरण तपासा. यामध्ये सुरुवातीला <strong>फक्त प्रश्न दिसतील, उत्तर दिसणार नाही.</strong> उत्तरासाठी व स्पष्टीकरणासाठी <span className="text-teal-300 font-bold">'उत्तर व स्पष्टीकरण पहा'</span> बटणावर क्लिक करा. (विनामूल्य १५ प्रश्नांपर्यंत उत्तरे तपासता येतील, त्यानंतर प्रीमियम व्हर्जन ॲक्टिव्हेट करावे लागेल).
-            </p>
-          </div>
+      {/* LEVEL 4: QUESTIONS PRACTICE LIST (FILTERED BY ACTIVE DRILLDOWN) */}
+      <div className="space-y-4 pt-4 border-t border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="text-lg font-black text-white flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-teal-400" />
+            <span>
+              {selectedTopic
+                ? `${selectedTopic.topicNumber}: ${selectedTopic.titleMr} प्रश्न`
+                : selectedChapter
+                ? `${selectedChapter.chapterNumber}: ${selectedChapter.titleMr} प्रश्न`
+                : selectedMainSubject
+                ? `${selectedMainSubject.titleMr} सर्व प्रश्न`
+                : 'प्रश्न बँक सराव (Question Bank Practice)'}
+            </span>
+          </h3>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="प्रश्न किंवा विषय शोधा..."
-              className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-700 focus:border-teal-400 rounded-xl text-xs text-white focus:outline-none"
-            />
+          <div className="text-xs font-extrabold text-teal-300 bg-teal-950/80 px-3 py-1 rounded-full border border-teal-500/30 self-start sm:self-auto">
+            {contextQuestions.length} प्रश्न उपलब्ध
           </div>
         </div>
 
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-          {searchFilteredQuestions.length > 0 ? (
-            searchFilteredQuestions.slice(0, 50).map((q) => {
-              const isAnswerRevealed = revealedIds.includes(q.id);
+        {/* Questions Cards List */}
+        <div className="space-y-3">
+          {contextQuestions.length > 0 ? (
+            contextQuestions.slice(0, 30).map((q, idx) => {
+              const isLocked = !isUnlocked && q.id > 15;
+              const isRevealed = revealedIds.includes(q.id);
               const isExpanded = !!expandedCards[q.id];
-              const isShowContent = isAnswerRevealed && isExpanded;
 
               return (
                 <div
                   key={q.id}
-                  className={`bg-slate-950 border p-4 rounded-2xl transition-all space-y-3 shadow-md ${
-                    isShowContent
-                      ? 'border-emerald-500/40 bg-slate-900 ring-1 ring-emerald-500/20'
-                      : 'border-slate-800 hover:border-teal-500/60'
+                  className={`bg-slate-900 border rounded-2xl p-4 sm:p-5 transition-all space-y-3 ${
+                    isLocked
+                      ? 'border-amber-500/30 bg-slate-900/90'
+                      : 'border-slate-800 hover:border-teal-500/50'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-xs font-bold text-teal-400">
-                    <span className="font-mono bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
-                      Q#{q.id} • {q.category.split(':')[0]}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black font-mono bg-teal-500/20 text-teal-300 px-2.5 py-0.5 rounded-md border border-teal-500/30">
+                        Q#{q.id}
+                      </span>
+
+                      {isLocked ? (
+                        <span className="text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span>प्रीमियम अनलॉक आवश्यक (Lock - Q16+)</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                          विनामूल्य सराव (Free Q1-15)
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                      {q.difficulty || 'medium'}
                     </span>
-                    {isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>उत्तर उघडले (Revealed)</span>
-                      </span>
-                    ) : !isUnlocked && q.id > 15 ? (
-                      <span className="text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                        <Lock className="w-3.5 h-3.5 text-amber-400" />
-                        <span>🔒 उत्तर पाहण्यासाठी प्रीमियम आवश्यक</span>
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                        उत्तर गुप्त (Answer Hidden)
-                      </span>
-                    )}
                   </div>
 
-                  <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed">
-                    {q.question_mr || q.question}
-                  </p>
-
-                  {q.question_mr && q.question && (
+                  {/* Question Text */}
+                  <div className="space-y-1">
+                    <p className="text-sm sm:text-base font-extrabold text-white leading-relaxed">
+                      {selectedSection === 'sec1' 
+                        ? (q.question_mr || q.question) 
+                        : (q.question_hi || q.question)}
+                    </p>
                     <p className="text-xs text-slate-400 italic">
                       {q.question}
                     </p>
-                  )}
-
-                  {/* Options */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-                    {q.options.map((opt, optIdx) => {
-                      const optMr = q.options_mr ? q.options_mr[optIdx] : undefined;
-                      const isCorrect = isShowContent && (
-                        opt === q.correct_answer ||
-                        (q.correct_answer_mr && optMr === q.correct_answer_mr) ||
-                        opt.startsWith(q.correct_answer.slice(0, 3))
-                      );
-
-                      return (
-                        <div
-                          key={optIdx}
-                          className={`p-2.5 rounded-xl border text-xs transition-all ${
-                            isCorrect
-                              ? 'bg-emerald-950/80 border-emerald-500 text-emerald-100 font-bold shadow-md'
-                              : 'bg-slate-900/80 border-slate-800 text-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                              isCorrect ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
-                            }`}>
-                              {String.fromCharCode(65 + optIdx)}
-                            </div>
-                            <div>
-                              {optMr && <p className={isCorrect ? 'text-emerald-200 font-bold' : 'text-slate-200'}>{optMr}</p>}
-                              <p className={optMr ? 'text-[10px] text-slate-400' : 'text-slate-300'}>{opt}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+                  {/* Answer Options Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {(selectedSection === 'sec1' && q.options_mr ? q.options_mr : (q.options_hi || q.options)).map((opt, oIdx) => (
+                      <div
+                        key={oIdx}
+                        onClick={() => handleSelectDirectQuestion(q.id)}
+                        className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-teal-500/40 p-2.5 rounded-xl text-xs text-slate-200 cursor-pointer transition-all font-medium"
+                      >
+                        {opt}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Actions & Reveal Toggle */}
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                     <button
-                      onClick={() => handleToggleAnswerCategory(q.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
-                        isShowContent && (isUnlocked || q.id <= 15)
-                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                          : isAnswerRevealed && (isUnlocked || q.id <= 15)
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : !isUnlocked && (q.id > 15 || revealedCount >= FREE_LIMIT)
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-gradient-to-r from-teal-500 to-cyan-400 hover:brightness-110 text-slate-950'
+                      onClick={() => handleToggleAnswer(q.id)}
+                      className={`font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
+                        isLocked
+                          ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow'
+                          : isExpanded
+                          ? 'bg-slate-800 text-teal-300 border border-teal-500/30'
+                          : 'bg-teal-500 hover:bg-teal-400 text-slate-950 shadow'
                       }`}
                     >
-                      {isShowContent && (isUnlocked || q.id <= 15) ? (
+                      {isLocked ? (
                         <>
-                          <ChevronUp className="w-3.5 h-3.5" />
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>उत्तर अनलॉक करा (₹200 Lifetime)</span>
+                        </>
+                      ) : isExpanded ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
                           <span>उत्तर लपवा</span>
-                        </>
-                      ) : isAnswerRevealed && (isUnlocked || q.id <= 15) ? (
-                        <>
-                          <ChevronDown className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>उत्तर पुन्हा पहा</span>
-                        </>
-                      ) : !isUnlocked && q.id > 15 ? (
-                        <>
-                          <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          <span>उत्तर व स्पष्टीकरण पहा 🔒 (प्रीमियम आवश्यक)</span>
-                        </>
-                      ) : !isUnlocked && revealedCount >= FREE_LIMIT ? (
-                        <>
-                          <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          <span>उत्तर व स्पष्टीकरण पहा 🔒 (मर्यादा संपली)</span>
                         </>
                       ) : (
                         <>
                           <Eye className="w-3.5 h-3.5" />
-                          <span>उत्तर व स्पष्टीकरण पहा</span>
+                          <span>अचूक उत्तर व स्पष्टीकरण पाहा</span>
                         </>
                       )}
                     </button>
 
                     <button
-                      onClick={() => handleSelectChapterQuestion(q.id)}
-                      className="flex items-center gap-1 text-xs text-teal-300 hover:text-teal-200 font-extrabold bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-xl border border-teal-500/30"
+                      onClick={() => onAskAITutor(q)}
+                      className="text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800"
                     >
-                      <span>थेट सराव करा</span>
-                      <Play className="w-3 h-3 fill-teal-300" />
+                      <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                      <span>AI शिक्षक स्पष्टीकरण</span>
                     </button>
                   </div>
 
-                  {/* Answer & Explanation Box */}
-                  {isShowContent && (isUnlocked || q.id <= 15) && (
-                    <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 space-y-2 animate-fade-in text-xs">
-                      <div className="text-emerald-200 font-bold">
-                        बरोबर उत्तर: {q.correct_answer_mr || q.correct_answer}
+                  {/* Answer Explanation Box */}
+                  {isExpanded && !isLocked && (
+                    <div className="mt-3 p-4 bg-teal-950/50 border border-teal-500/40 rounded-xl space-y-2 animate-fade-in text-xs">
+                      <div className="flex items-center gap-2 text-emerald-400 font-black">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>अचूक उत्तर: {q.correct_answer_mr || q.correct_answer}</span>
                       </div>
-                      {q.explanation_mr && (
-                        <p className="text-slate-200 font-medium">{q.explanation_mr}</p>
-                      )}
-                      {q.explanation && (
-                        <p className="text-slate-400 italic">{q.explanation}</p>
-                      )}
+                      <p className="text-slate-200 leading-relaxed">
+                        {q.explanation_mr || q.explanation}
+                      </p>
                     </div>
                   )}
                 </div>
               );
             })
           ) : (
-            <p className="text-center text-xs text-slate-400 py-8">
-              काहीही जुळणारे प्रश्न सापडले नाहीत. शोध शब्द तपासा.
-            </p>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
+              <HelpCircle className="w-8 h-8 text-slate-500 mx-auto" />
+              <p className="text-sm font-bold text-slate-300">
+                निवडलेल्या विषयात किंवा शोधात जुळणारे प्रश्न लोड होत आहेत.
+              </p>
+            </div>
           )}
         </div>
       </div>
-
-      {/* PREMIUM UNLOCK MODAL */}
-      {showUnlockModal && (
-        <PremiumUnlockModal
-          onClose={() => setShowUnlockModal(false)}
-          onSuccessUnlock={refreshPremiumState}
-          customMessage={modalMessage}
-        />
-      )}
     </div>
   );
 };

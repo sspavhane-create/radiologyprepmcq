@@ -9,7 +9,8 @@ import {
   ArrowRight, 
   Sparkles, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  Home
 } from 'lucide-react';
 
 interface ResultSummaryProps {
@@ -271,6 +272,27 @@ export const ResultSummary: React.FC<ResultSummaryProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Bottom Sticky-style / Clear Return Button */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 pb-4 border-t border-slate-800/80 mt-12">
+        <button
+          onClick={onNavigateHome}
+          className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-sm tracking-wide shadow-xl hover:shadow-teal-500/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          <Home className="w-4.5 h-4.5 stroke-[2.5]" />
+          <span>मुख्य डॅशबोर्डवर परत जा (Return to Dashboard)</span>
+        </button>
+
+        {missedQuestionIds.length > 0 && (
+          <button
+            onClick={() => onRetakeMissedOnly(missedQuestionIds)}
+            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm tracking-wide shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-4.5 h-4.5 stroke-[2.5]" />
+            <span>चुकीचे प्रश्न पुन्हा सोडवा ({missedQuestionIds.length})</span>
+          </button>
+        )}
       </div>
     </div>
   );

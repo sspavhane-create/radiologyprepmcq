@@ -20,17 +20,34 @@ import {
   collection, 
   getDocs,
   query,
-  where
+  where,
+  enableIndexedDbPersistence
 } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
+const getEnv = (key: string): string | undefined => {
+  try {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+      const val = (import.meta as any).env[key];
+      if (val) return val;
+    }
+  } catch {}
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      const val = process.env[key];
+      if (val) return val;
+    }
+  } catch {}
+  return undefined;
+};
+
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigJson.storageBucket,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
-  appId: process.env.VITE_FIREBASE_APP_ID || firebaseConfigJson.appId,
+  apiKey: getEnv('VITE_FIREBASE_API_KEY') || firebaseConfigJson.apiKey,
+  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || firebaseConfigJson.authDomain,
+  projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || firebaseConfigJson.projectId,
+  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || firebaseConfigJson.storageBucket,
+  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || firebaseConfigJson.messagingSenderId,
+  appId: getEnv('VITE_FIREBASE_APP_ID') || firebaseConfigJson.appId,
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -41,6 +58,31 @@ const databaseId = firebaseConfigJson.firestoreDatabaseId || '(default)';
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, databaseId);
+
+// Enable IndexedDB offline persistence safely
+if (typeof window !== 'undefined') {
+  const isInIframe = (() => {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true;
+    }
+  })();
+
+  if (!isInIframe) {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore offline persistence failed-precondition (multiple tabs open)');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore offline persistence is unimplemented in this browser');
+      } else {
+        console.warn('Could not enable Firestore offline persistence:', err.message || err);
+      }
+    });
+  } else {
+    console.info('Firestore: Running inside iframe, skipping offline IndexedDB persistence to avoid sandbox closing/hidden errors.');
+  }
+}
 
 // Device ID management (unique per browser session)
 export const getDeviceId = (): string => {
@@ -91,44 +133,55 @@ export const registerUserDeviceAndLogin = async (
   studentName?: string
 ): Promise<UserProfile> => {
   const currentDeviceId = customDeviceId || getDeviceId();
-  const userRef = doc(db, 'users', user.uid);
-  const snap = await getDoc(userRef);
+  let targetUid = user.uid;
+  try {
+    const storedUid = localStorage.getItem('xray_prep_logged_in_uid');
+    if (storedUid) {
+      targetUid = storedUid;
+    }
+  } catch (e) {}
 
   const now = new Date().toISOString();
-  let profile: UserProfile;
-
   // Check if admin phone number or designated admin
-  const isAdmin = user.phoneNumber === '+919769441271' || user.email === 'sspavhane@gmail.com';
+  const isAdmin = targetUid.includes('9769441271') || user.phoneNumber === '+919769441271' || user.email === 'sspavhane@gmail.com';
 
-  if (snap.exists()) {
-    const existing = snap.data() as UserProfile;
-    profile = {
-      ...existing,
-      deviceId: currentDeviceId,
-      lastLoginAt: now,
-      studentName: studentName || existing.studentName || 'अभ्यासक विद्यार्थी',
-      phoneNumber: user.phoneNumber || existing.phoneNumber || '9769441271',
-      role: isAdmin ? 'admin' : (existing.role || 'user'),
-    };
-    await updateDoc(userRef, {
-      deviceId: currentDeviceId,
-      lastLoginAt: now,
-      studentName: profile.studentName,
-      phoneNumber: profile.phoneNumber,
-      role: profile.role,
-    });
-  } else {
-    profile = {
-      uid: user.uid,
-      phoneNumber: user.phoneNumber || '+919769441271',
-      deviceId: currentDeviceId,
-      isPremium: false,
-      role: isAdmin ? 'admin' : 'user',
-      studentName: studentName || 'अभ्यासक विद्यार्थी',
-      createdAt: now,
-      lastLoginAt: now,
-    };
-    await setDoc(userRef, profile);
+  let profile: UserProfile = {
+    uid: targetUid,
+    phoneNumber: user.phoneNumber || '+919769441271',
+    deviceId: currentDeviceId,
+    isPremium: targetUid.startsWith('user-'), // If it is an access code login, it is premium-activated by default
+    role: isAdmin ? 'admin' : 'user',
+    studentName: studentName || 'अभ्यासक विद्यार्थी',
+    createdAt: now,
+    lastLoginAt: now,
+  };
+
+  try {
+    const userRef = doc(db, 'users', targetUid);
+    const snap = await getDoc(userRef);
+
+    if (snap.exists()) {
+      const existing = snap.data() as UserProfile;
+      profile = {
+        ...existing,
+        deviceId: currentDeviceId,
+        lastLoginAt: now,
+        studentName: studentName || existing.studentName || 'अभ्यासक विद्यार्थी',
+        phoneNumber: user.phoneNumber || existing.phoneNumber || '9769441271',
+        role: isAdmin ? 'admin' : (existing.role || 'user'),
+      };
+      await updateDoc(userRef, {
+        deviceId: currentDeviceId,
+        lastLoginAt: now,
+        studentName: profile.studentName,
+        phoneNumber: profile.phoneNumber,
+        role: profile.role,
+      });
+    } else {
+      await setDoc(userRef, profile);
+    }
+  } catch (err) {
+    console.warn('Could not register user device in Firestore (offline/sandbox):', err);
   }
 
   return profile;
@@ -172,7 +225,15 @@ export const subscribeToDeviceSession = (
   onDeviceMismatch: () => void,
   onProfileUpdate: (profile: UserProfile) => void
 ) => {
-  const userRef = doc(db, 'users', uid);
+  let targetUid = uid;
+  try {
+    const storedUid = localStorage.getItem('xray_prep_logged_in_uid');
+    if (storedUid) {
+      targetUid = storedUid;
+    }
+  } catch (e) {}
+
+  const userRef = doc(db, 'users', targetUid);
   return onSnapshot(userRef, (docSnap) => {
     if (docSnap.exists()) {
       const profile = docSnap.data() as UserProfile;
@@ -353,7 +414,19 @@ export const getLiveOtpForPhone = async (phone: string): Promise<string | null> 
 };
 
 // Validate Access Code and Bind Device
-export const verifyAccessCodeAndLogin = async (phone: string, inputCode: string, deviceId: string): Promise<{ success: boolean; message: string; name?: string; uid?: string }> => {
+export const verifyAccessCodeAndLogin = async (
+  phone: string, 
+  inputCode: string, 
+  deviceId: string,
+  forceTransfer: boolean = false
+): Promise<{ 
+  success: boolean; 
+  message: string; 
+  name?: string; 
+  uid?: string;
+  needsTransferConfirm?: boolean;
+  previousDeviceId?: string;
+}> => {
   const cleanPhone = phone.replace(/\D/g, '').slice(-10);
   const trimmedCode = inputCode.trim();
 
@@ -374,17 +447,20 @@ export const verifyAccessCodeAndLogin = async (phone: string, inputCode: string,
     }
     
     // Check device binding
-    if (data.boundDeviceId && data.boundDeviceId !== deviceId) {
-      return { success: false, message: 'हा कोड दुसऱ्या डिव्हाइसवर आधीपासूनच वापरला गेला आहे (1 Device Limit).' };
+    if (data.boundDeviceId && data.boundDeviceId !== deviceId && !forceTransfer) {
+      return { 
+        success: false, 
+        needsTransferConfirm: true,
+        previousDeviceId: data.boundDeviceId,
+        message: 'हा कोड दुसऱ्या डिव्हाइसवर आधीपासून चालू आहे. तुम्हाला या सध्याच्या डिव्हाइसवर ट्रान्सफर करायचे आहे का?' 
+      };
     }
     
-    // Bind device if not bound
-    if (!data.boundDeviceId) {
-      await updateDoc(allowedRef, { boundDeviceId: deviceId });
-    }
+    // Bind device if not bound or if forceTransfer is requested
+    await updateDoc(allowedRef, { boundDeviceId: deviceId });
     
     // Create/update user in users collection
-    const uid = `user-${cleanPhone}-${Date.now()}`;
+    const uid = `user-${cleanPhone}`;
     const userRef = doc(db, 'users', uid);
     await setDoc(userRef, {
       uid,
@@ -395,7 +471,14 @@ export const verifyAccessCodeAndLogin = async (phone: string, inputCode: string,
       isPremium: true
     }, { merge: true });
     
-    return { success: true, message: 'लॉगिन यशस्वी!', name: data.studentName, uid: uid };
+    return { 
+      success: true, 
+      message: forceTransfer 
+        ? 'लॉगिन यशस्विरीत्या या डिव्हाइसवर ट्रान्सफर झाले! जुने डिव्हाइस लॉग आउट झाले आहे.' 
+        : 'लॉगिन यशस्वी!', 
+      name: data.studentName, 
+      uid: uid 
+    };
   } catch (err) {
     console.error('Error verifying Access Code:', err);
     return { success: false, message: 'लॉगिन प्रक्रियेत त्रुटी आली. कृपया पुन्हा प्रयत्न करा.' };
@@ -504,6 +587,43 @@ export const rejectPaymentRequest = async (
     return true;
   } catch (err) {
     console.error('Error rejecting payment request:', err);
+    return false;
+  }
+};
+
+export const getBreakingNews = async (): Promise<string[]> => {
+  try {
+    const docRef = doc(db, 'settings', 'breaking_news');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists() && Array.isArray(docSnap.data().items)) {
+      return docSnap.data().items;
+    }
+  } catch (err: any) {
+    if (err?.message?.includes('offline') || err?.code === 'unavailable') {
+      console.warn('Client is offline, using offline cached/default breaking news.');
+    } else {
+      console.warn('Could not fetch live breaking news settings:', err?.message || err);
+    }
+  }
+  return [
+    "📢 DHS Maharashtra Recruitment Updates",
+    "📢 DMER Latest Notifications",
+    "📢 Maharashtra Tantrik Vibhag Exam Updates",
+    "📢 AIIMS Radiographer Recruitment",
+    "📢 ESIC Radiographer Vacancy",
+    "📢 Railway Radiographer Updates",
+    "📢 AERB Radiation Safety Updates",
+    "📢 New Mock Tests Added"
+  ];
+};
+
+export const saveBreakingNews = async (items: string[]): Promise<boolean> => {
+  try {
+    const docRef = doc(db, 'settings', 'breaking_news');
+    await setDoc(docRef, { items }, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('Error saving breaking news:', err);
     return false;
   }
 };

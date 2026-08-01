@@ -16,7 +16,8 @@ import {
   MessageCircle,
   Phone,
   CreditCard,
-  Clock
+  Clock,
+  Megaphone
 } from 'lucide-react';
 import { 
   getAllFirestoreUsers, 
@@ -28,7 +29,9 @@ import {
   getLiveOtpForPhone,
   subscribeToPaymentRequests,
   AllowedPhone,
-  UserProfile 
+  UserProfile,
+  getBreakingNews,
+  saveBreakingNews
 } from '../lib/firebase';
 import { generateUniqueDeviceKey } from '../lib/storage';
 import { AdminPaymentDashboard } from './AdminPaymentDashboard';
@@ -42,12 +45,17 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
   
-  const [activeTab, setActiveTab] = useState<'phones' | 'payments' | 'users'>('phones');
+  const [activeTab, setActiveTab] = useState<'phones' | 'payments' | 'users' | 'news'>('phones');
   const [pendingPaymentCount, setPendingPaymentCount] = useState<number>(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
+
+  // News ticker states
+  const [newsItems, setNewsItems] = useState<string[]>([]);
+  const [newNewsItem, setNewNewsItem] = useState<string>('');
+  const [savingNews, setSavingNews] = useState<boolean>(false);
 
   // Subscribe to pending payments to show live badge count
   useEffect(() => {
@@ -72,12 +80,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
 
   const fetchUsersAndPhones = async () => {
     setLoading(true);
-    const [userList, phonesList] = await Promise.all([
+    const [userList, phonesList, newsList] = await Promise.all([
       getAllFirestoreUsers(),
-      getAllowedPhones()
+      getAllowedPhones(),
+      getBreakingNews()
     ]);
     setUsers(userList);
     setAllowedList(phonesList.filter(p => p.isAllowed !== false));
+    setNewsItems(newsList);
     setLoading(false);
   };
 
@@ -180,7 +190,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
                   </span>
                 </h2>
                 <p className="text-[10px] sm:text-[11px] text-slate-400">
-                  मोबाईल नंबर रजिस्टर करा, OTP पहा आणि पेमेंट विनंत्या १-क्लिकने ॲप्रूव्ह करा.
+                  मोबाईल नंबर रजिस्टर करा, सिक्युरिटी की व्यवस्थापित करा आणि पेमेंट विनंत्या १-क्लिकने ॲप्रूव्ह करा.
                 </p>
               </div>
             </div>
@@ -209,7 +219,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
               }`}
             >
               <Smartphone className="w-4 h-4" />
-              <span>मोबाईल व OTP लिस्ट ({allowedList.length})</span>
+              <span>रजिस्टर मोबाईल व सिक्युरिटी की ({allowedList.length})</span>
             </button>
 
             <button
@@ -241,6 +251,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
             >
               <Users className="w-4 h-4" />
               <span>सर्व विद्यार्थी ({users.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('news')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'news'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Megaphone className="w-4 h-4" />
+              <span>घोषणा / News ({newsItems.length})</span>
             </button>
           </div>
           )}
@@ -285,6 +308,97 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
             </div>
           ) : (
             <>
+        {/* TAB 4: News Ticker Manager */}
+        {activeTab === 'news' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="flex items-center justify-between text-xs font-bold text-teal-300">
+              <span className="flex flex-col gap-1">
+                <span className="flex items-center gap-1.5 text-sm">
+                  <Megaphone className="w-5 h-5 text-teal-400 animate-pulse" />
+                  <span>ब्रेकिंग न्यूज स्क्रोलर व्यवस्थापन (Breaking News Manager)</span>
+                </span>
+                <span className="text-slate-400 text-[11px] font-normal">
+                  येथे टाकलेल्या घोषणा डॅशबोर्डवरील स्क्रोल पट्टीमध्ये उजवीकडून डावीकडे स्क्रोल होत राहतील.
+                </span>
+              </span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newNewsItem}
+                  onChange={(e) => setNewNewsItem(e.target.value)}
+                  placeholder="नवीन घोषणा लिहा (उदा. 📢 DMER हॉल तिकीट उपलब्ध झाले...)"
+                  className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-teal-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newNewsItem.trim()) return;
+                    setNewsItems([...newsItems, newNewsItem.trim()]);
+                    setNewNewsItem('');
+                  }}
+                  className="bg-teal-500 hover:bg-teal-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-colors"
+                >
+                  सूचीमध्ये जोडा
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 block">वर्तमान घोषणा सूची (खालील घोषणा स्क्रोल होतील):</label>
+                {newsItems.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic py-2">घोषणा सूची रिकामी आहे. कृपया नवीन घोषणा जोडा.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {newsItems.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs gap-3">
+                        <span className="text-slate-200 truncate flex-1">{item}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewsItems(newsItems.filter((_, i) => i !== index));
+                          }}
+                          className="text-rose-400 hover:text-rose-300 p-1 bg-rose-950/40 rounded border border-rose-500/20 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  disabled={savingNews}
+                  onClick={async () => {
+                    setSavingNews(true);
+                    const success = await saveBreakingNews(newsItems);
+                    setSavingNews(false);
+                    if (success) {
+                      alert('घोषणा यशस्वीरित्या सेव्ह झाल्या! डॅशबोर्डवर तात्काळ अपडेट दिसेल.');
+                    } else {
+                      alert('सेव्ह करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+                    }
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                >
+                  {savingNews ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>डॅशबोर्डवर सेव्ह व अपडेट करा</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 1: Payment Requests Dashboard */}
         {activeTab === 'payments' && (
           <AdminPaymentDashboard onStatusUpdated={fetchUsersAndPhones} />
@@ -296,7 +410,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
           <div className="flex items-center justify-between text-xs font-bold text-teal-300">
             <span className="flex items-center gap-1.5">
               <UserPlus className="w-4 h-4 text-teal-400" />
-              <span>रजिस्टर मोबाईल नंबर व OTP व्यवस्थापन (Allowed Phone Manager):</span>
+              <span>रजिस्टर मोबाईल व सिक्युरिटी की व्यवस्थापन (Security Key & Phone Manager):</span>
             </span>
             <span className="text-[10px] bg-teal-950 text-teal-300 font-mono px-2 py-0.5 rounded border border-teal-500/30">
               Strict Registered Mobile Login

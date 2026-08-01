@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question } from '../types';
 import { CATEGORIES } from '../data/initialQuestions';
 import { ALL_30_CHAPTERS } from '../data/chaptersData';
@@ -33,13 +33,17 @@ interface QuestionBankGeneratorProps {
   onAddMultipleQuestions: (newQs: Question[]) => void;
   onNavigateTab: (tab: string) => void;
   onAskAITutor?: (question: Question) => void;
+  isUnlocked?: boolean;
+  langMode?: 'dual' | 'en' | 'mr';
 }
 
 export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   questions,
   onAddMultipleQuestions,
   onNavigateTab,
-  onAskAITutor
+  onAskAITutor,
+  isUnlocked: isUnlockedProp = false,
+  langMode = 'dual',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(CATEGORIES[0].name);
   const [batchSize, setBatchSize] = useState<number>(10);
@@ -49,8 +53,12 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedTemplate, setCopiedTemplate] = useState<boolean>(false);
   const [activeBookTab, setActiveBookTab] = useState<'generator' | 'chapters' | 'all'>('chapters');
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(getIsPremiumUnlocked());
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isUnlockedProp || getIsPremiumUnlocked());
   const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsUnlocked(isUnlockedProp || getIsPremiumUnlocked());
+  }, [isUnlockedProp]);
 
   // Filtered Questions list
   const filteredQuestions = questions.filter(q => {
@@ -315,12 +323,30 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-white group-hover:text-teal-300 transition-colors">
-                      {chap.title}
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed font-medium">
-                      {chap.titleMr}
-                    </p>
+                    {langMode === 'mr' ? (
+                      <>
+                        <h3 className="text-sm font-extrabold text-white group-hover:text-teal-300 transition-colors">
+                          {chap.titleMr}
+                        </h3>
+                        <p className="text-xs text-slate-300 mt-0.5 font-semibold">{chap.title}</p>
+                      </>
+                    ) : langMode === 'en' ? (
+                      <>
+                        <h3 className="text-sm font-black text-white group-hover:text-teal-300 transition-colors">
+                          {chap.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">{chap.titleMr}</p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-sm font-black text-white group-hover:text-teal-300 transition-colors">
+                          {chap.title}
+                        </h3>
+                        <p className="text-xs text-teal-300 mt-0.5 font-extrabold">
+                          {chap.titleMr}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 

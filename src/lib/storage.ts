@@ -57,6 +57,7 @@ export interface ActivationDetails {
   keyUsed: string;
   boundDeviceId: string;
   activatedAt: string;
+  activatedTimestamp?: number;
   studentName?: string;
   studentPhone?: string;
 }
@@ -96,6 +97,7 @@ export const validateAndUnlockKey = (
       keyUsed: code,
       boundDeviceId: currentDevId,
       activatedAt: new Date().toLocaleString('mr-IN'),
+      activatedTimestamp: Date.now(),
       studentName: studentName || 'अधिकृत विद्यार्थी',
       studentPhone: studentPhone || '',
     };
@@ -105,7 +107,7 @@ export const validateAndUnlockKey = (
 
     return {
       success: true,
-      message: `✅ सिक्युरिटी की व्हेरीफाय झाली! प्रीमियम व्हर्जन या डिव्हाइसवर (${currentDevId}) १ एक्टिव्ह सत्रासाठी सुरक्षित अनलॉक झाले.`,
+      message: `✅ सिक्युरिटी की व्हेरीफाय झाली! प्रीमियम व्हर्जन या डिव्हाइसवर (${currentDevId}) २४ तासांच्या ऑटोमॅटिक सत्रासाठी अनलॉक झाले.`,
     };
   }
 
@@ -122,11 +124,28 @@ export const getIsPremiumUnlocked = (): boolean => {
 
     // Verify session device binding: must match this device's unique ID
     const info = getActivationDetails();
-    if (info && info.boundDeviceId) {
-      const currentDevId = getDeviceId();
-      if (info.boundDeviceId !== currentDevId) {
-        // Device mismatch - lock out illegally copied session data
-        return false;
+    if (info) {
+      if (info.boundDeviceId) {
+        const currentDevId = getDeviceId();
+        if (info.boundDeviceId !== currentDevId) {
+          // Device mismatch - lock out illegally copied session data
+          return false;
+        }
+      }
+
+      // Check 24-hour (1 day) automatic session expiry
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours
+      if (info.activatedTimestamp) {
+        if (Date.now() - info.activatedTimestamp > ONE_DAY_MS) {
+          // Auto logout after 1 day
+          localStorage.removeItem(STORAGE_KEYS.PREMIUM_UNLOCKED);
+          localStorage.removeItem(STORAGE_KEYS.ACTIVATION_INFO);
+          return false;
+        }
+      } else {
+        // Migration for existing session without timestamp: set current timestamp
+        info.activatedTimestamp = Date.now();
+        localStorage.setItem(STORAGE_KEYS.ACTIVATION_INFO, JSON.stringify(info));
       }
     }
     return true;
@@ -135,18 +154,26 @@ export const getIsPremiumUnlocked = (): boolean => {
   }
 };
 
-export const setPremiumUnlocked = (unlocked: boolean = true): boolean => {
+export const setPremiumUnlocked = (
+  unlocked: boolean = true,
+  studentName?: string,
+  studentPhone?: string
+): boolean => {
   try {
     if (!unlocked) {
       localStorage.removeItem(STORAGE_KEYS.PREMIUM_UNLOCKED);
       localStorage.removeItem(STORAGE_KEYS.ACTIVATION_INFO);
     } else {
       const currentDevId = getDeviceId();
+      const existingInfo = getActivationDetails();
       const info: ActivationDetails = {
         isUnlocked: true,
-        keyUsed: 'PAVHANE2026',
+        keyUsed: existingInfo?.keyUsed || 'PAVHANE2026',
         boundDeviceId: currentDevId,
-        activatedAt: new Date().toLocaleString('mr-IN'),
+        activatedAt: existingInfo?.activatedAt || new Date().toLocaleString('mr-IN'),
+        activatedTimestamp: existingInfo?.activatedTimestamp || Date.now(),
+        studentName: studentName || existingInfo?.studentName || 'अभ्यासक विद्यार्थी',
+        studentPhone: studentPhone || existingInfo?.studentPhone || '',
       };
       localStorage.setItem(STORAGE_KEYS.PREMIUM_UNLOCKED, 'true');
       localStorage.setItem(STORAGE_KEYS.ACTIVATION_INFO, JSON.stringify(info));
