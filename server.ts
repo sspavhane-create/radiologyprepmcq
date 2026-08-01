@@ -71,7 +71,7 @@ Provide a structured, deeply educational response in JSON format matching this e
 Return ONLY valid JSON.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -164,7 +164,7 @@ Make sure option choices start with (A), (B), (C), (D) and correct_answer matche
 Return ONLY a valid JSON array.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'

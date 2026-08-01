@@ -65,6 +65,7 @@ export default function App() {
   const [activeQuizQuestions, setActiveQuizQuestions] = useState<Question[] | null>(null);
   const [activeQuizTitle, setActiveQuizTitle] = useState<string>('Practice Quiz');
   const [isExamMode, setIsExamMode] = useState<boolean>(false);
+  const [isCentralQuiz, setIsCentralQuiz] = useState<boolean>(false);
   const [initialQuestionIndex, setInitialQuestionIndex] = useState<number>(0);
 
   // Active Completed Result State
@@ -180,10 +181,12 @@ export default function App() {
     mode: 'exam' | 'practice' | 'category' | 'core' | 'saved' | 'missed';
     category?: string;
     questionIds?: number[];
+    isCentral?: boolean;
   }) => {
     let quizSet: Question[] = [];
     let title = 'Practice Exam';
     let examMode = false;
+    let central = options.isCentral || false;
 
     if (options.mode === 'exam') {
       const techQs = questions.filter(q => q.section === 'technical' || q.category.includes('Technical'));
@@ -237,6 +240,7 @@ export default function App() {
     setActiveQuizQuestions(quizSet);
     setActiveQuizTitle(title);
     setIsExamMode(examMode);
+    setIsCentralQuiz(central);
     setInitialQuestionIndex(0);
     setQuizResult(null);
     setActiveTab('quiz');
@@ -376,6 +380,7 @@ export default function App() {
               setActiveTab('dashboard');
             }}
             initialQuestionIndex={initialQuestionIndex}
+            isCentral={isCentralQuiz}
           />
         ) : activeTab === 'dashboard' ? (
           /* DASHBOARD VIEW */
@@ -425,6 +430,7 @@ export default function App() {
             onAskAITutor={(q) => setAiTutorQuestion(q)}
             onGenerateCategoryQuestions={(cat) => setIsAddModalOpen(true)}
             onSelectQuestionDirect={handleSelectQuestionDirect}
+            langMode={langMode}
           />
         ) : activeTab === 'question-bank' ? (
           /* QUESTION BANK & GENERATOR ENGINE VIEW */

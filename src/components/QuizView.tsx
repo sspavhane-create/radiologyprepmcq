@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getIsPremiumUnlocked } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
+import { getHindiQuestion } from '../lib/translation';
 
 interface QuizViewProps {
   questions: Question[];
@@ -33,6 +34,7 @@ interface QuizViewProps {
   onAskAITutor: (q: Question) => void;
   onExitQuiz: () => void;
   initialQuestionIndex?: number;
+  isCentral?: boolean;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({
@@ -46,6 +48,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onAskAITutor,
   onExitQuiz,
   initialQuestionIndex = 0,
+  isCentral = false,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -71,8 +74,20 @@ export const QuizView: React.FC<QuizViewProps> = ({
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
 
+  // Determine if this is a Central or All-India exam (requires Hindi & English language)
+  const isCentralMode = isCentral || 
+    title.toLowerCase().includes('aiims') || 
+    title.toLowerCase().includes('central') || 
+    title.toLowerCase().includes('railway') || 
+    title.toLowerCase().includes('esic') || 
+    title.toLowerCase().includes('pgimer') || 
+    title.toLowerCase().includes('jipmer') || 
+    title.toLowerCase().includes('sgpgi') || 
+    title.toLowerCase().includes('gmc');
+
   // Question index >= 15 is locked if user is not premium (First 15 questions 0-14 are FREE)
-  const isQuestionLocked = !isPremium && currentIndex >= 15;
+  // Also, entire Exam mode is locked for non-premium users (from question 1)
+  const isQuestionLocked = !isPremium && (isExamMode || currentIndex >= 15);
 
   // Global Timer
   useEffect(() => {
@@ -255,7 +270,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 quizLangMode === 'dual' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
               }`}
             >
-              दोन्ही
+              {isCentralMode ? 'Both (EN+HI)' : 'दोन्ही'}
             </button>
             <button
               onClick={() => setQuizLangMode('mr')}
@@ -263,7 +278,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 quizLangMode === 'mr' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
               }`}
             >
-              मराठी
+              {isCentralMode ? 'हिंदी (HI)' : 'मराठी'}
             </button>
             <button
               onClick={() => setQuizLangMode('en')}
@@ -339,11 +354,18 @@ export const QuizView: React.FC<QuizViewProps> = ({
             </h3>
           )}
 
-          {(quizLangMode === 'mr' || quizLangMode === 'dual') && currentQuestion.question_mr && (
-            <div className="p-4 bg-teal-950/60 border-2 border-teal-500/40 rounded-2xl text-teal-100 font-bold text-lg sm:text-xl leading-relaxed shadow-lg">
-              <span className="text-xs font-black text-amber-400 uppercase tracking-wider block mb-1">मराठी भाषांतर (मराठी प्रश्न):</span>
-              {currentQuestion.question_mr}
-            </div>
+          {(quizLangMode === 'mr' || quizLangMode === 'dual') && (
+            isCentralMode ? (
+              <div className="p-4 bg-indigo-950/60 border-2 border-indigo-500/40 rounded-2xl text-indigo-100 font-bold text-lg sm:text-xl leading-relaxed shadow-lg animate-fadeIn">
+                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block mb-1">हिंदी अनुवाद (हिंदी प्रश्न):</span>
+                {getHindiQuestion(currentQuestion).question}
+              </div>
+            ) : currentQuestion.question_mr ? (
+              <div className="p-4 bg-teal-950/60 border-2 border-teal-500/40 rounded-2xl text-teal-100 font-bold text-lg sm:text-xl leading-relaxed shadow-lg">
+                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block mb-1">मराठी भाषांतर (मराठी प्रश्न):</span>
+                {currentQuestion.question_mr}
+              </div>
+            ) : null
           )}
         </div>
 
@@ -444,10 +466,16 @@ export const QuizView: React.FC<QuizViewProps> = ({
                       {(quizLangMode === 'en' || quizLangMode === 'dual') && (
                         <div className="text-base sm:text-lg font-bold leading-snug">{option}</div>
                       )}
-                      {(quizLangMode === 'mr' || quizLangMode === 'dual') && optionMr && (
-                        <div className="text-sm sm:text-base text-teal-200 font-bold leading-snug">
-                          {optionMr}
-                        </div>
+                      {(quizLangMode === 'mr' || quizLangMode === 'dual') && (
+                        isCentralMode ? (
+                          <div className="text-sm sm:text-base text-indigo-200 font-bold leading-snug animate-fadeIn">
+                            {getHindiQuestion(currentQuestion).options[idx] || option}
+                          </div>
+                        ) : optionMr ? (
+                          <div className="text-sm sm:text-base text-teal-200 font-bold leading-snug">
+                            {optionMr}
+                          </div>
+                        ) : null
                       )}
                     </div>
                   </div>
@@ -494,13 +522,19 @@ export const QuizView: React.FC<QuizViewProps> = ({
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold text-teal-400 uppercase tracking-wider">स्पष्टीकरण (Explanation)</h4>
+              <h4 className={`text-xs font-semibold uppercase tracking-wider ${isCentralMode ? 'text-indigo-400' : 'text-teal-400'}`}>
+                स्पष्टीकरण (Explanation)
+              </h4>
               
-              {currentQuestion.explanation_mr && (
+              {isCentralMode ? (
+                <div className="p-3 bg-indigo-950/30 border border-indigo-500/20 rounded-lg text-sm text-indigo-100 font-medium leading-relaxed animate-fadeIn">
+                  {getHindiQuestion(currentQuestion).explanation}
+                </div>
+              ) : currentQuestion.explanation_mr ? (
                 <div className="p-3 bg-teal-950/30 border border-teal-500/20 rounded-lg text-sm text-teal-100 font-medium leading-relaxed">
                   {currentQuestion.explanation_mr}
                 </div>
-              )}
+              ) : null}
 
               <p className="text-xs text-slate-300 leading-relaxed italic">{currentQuestion.explanation}</p>
             </div>

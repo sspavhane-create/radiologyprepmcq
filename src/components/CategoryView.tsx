@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Question, QuizSession } from '../types';
+import { Question, QuizSession, LanguageMode } from '../types';
 import { ALL_30_CHAPTERS, ChapterItem } from '../data/chaptersData';
 import { 
   getIsPremiumUnlocked, 
@@ -39,6 +39,7 @@ interface CategoryViewProps {
   onAskAITutor: (q: Question) => void;
   onGenerateCategoryQuestions: (categoryName: string) => void;
   onSelectQuestionDirect: (qId: number) => void;
+  langMode?: LanguageMode;
 }
 
 export const CategoryView: React.FC<CategoryViewProps> = ({
@@ -51,6 +52,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onAskAITutor,
   onGenerateCategoryQuestions,
   onSelectQuestionDirect,
+  langMode = 'dual',
 }) => {
   const [activePortion, setActivePortion] = useState<'technical' | 'non-technical'>('technical');
   const [selectedChapterId, setSelectedChapterId] = useState<number | null>(1);
@@ -535,11 +537,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     </div>
 
                     <h3 className="text-sm font-bold text-white leading-snug">
-                      {chap.title}
+                      {langMode === 'mr' ? chap.titleMr : chap.title}
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                      {chap.titleMr}
-                    </p>
                   </div>
 
                   <div className="space-y-2 pt-3 border-t border-slate-800">
