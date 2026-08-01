@@ -46,7 +46,6 @@ export const PromoAdModal: React.FC<PromoAdModalProps> = ({
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            onClose();
             return 0;
           }
           return prev - 1;
@@ -55,7 +54,13 @@ export const PromoAdModal: React.FC<PromoAdModalProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, isPaused, onClose, autoCloseSeconds]);
+  }, [isOpen, isPaused, autoCloseSeconds]);
+
+  useEffect(() => {
+    if (isOpen && timeLeft === 0) {
+      onClose();
+    }
+  }, [timeLeft, isOpen, onClose]);
 
   if (!isOpen) return null;
 
