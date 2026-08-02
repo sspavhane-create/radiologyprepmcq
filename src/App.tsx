@@ -91,6 +91,8 @@ export default function App() {
   const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
   const [deviceMismatchAlert, setDeviceMismatchAlert] = useState<boolean>(false);
+  const [authModalInitialPhone, setAuthModalInitialPhone] = useState<string>('');
+  const [authModalInitialAccessCode, setAuthModalInitialAccessCode] = useState<string>('');
 
   const handleSelectCategoryForChapters = (catName: string) => {
     setSelectedCategoryFilter(catName);
@@ -122,6 +124,25 @@ export default function App() {
     setQuizSessions(getQuizSessions());
     setBookmarks(getBookmarks());
     setConfidenceRatings(getFlashcardConfidence());
+  }, []);
+
+  // Custom event listener to open Premium Login with initial values from pay screen
+  useEffect(() => {
+    const handleOpenLogin = (e: Event) => {
+      const customEvent = e as CustomEvent<{ phone?: string; code?: string }>;
+      if (customEvent.detail) {
+        setAuthModalInitialPhone(customEvent.detail.phone || '');
+        setAuthModalInitialAccessCode(customEvent.detail.code || '');
+      } else {
+        setAuthModalInitialPhone('');
+        setAuthModalInitialAccessCode('');
+      }
+      setShowAuthModal(true);
+    };
+    window.addEventListener('open-premium-login', handleOpenLogin);
+    return () => {
+      window.removeEventListener('open-premium-login', handleOpenLogin);
+    };
   }, []);
 
   // Firebase Auth Listener & Firestore Device Session Monitor
@@ -552,9 +573,17 @@ export default function App() {
         <AuthModal
           isUnlocked={isUnlocked}
           userProfile={userProfile}
-          onClose={() => setShowAuthModal(false)}
+          initialPhoneNumber={authModalInitialPhone}
+          initialAccessCode={authModalInitialAccessCode}
+          onClose={() => {
+            setShowAuthModal(false);
+            setAuthModalInitialPhone('');
+            setAuthModalInitialAccessCode('');
+          }}
           onSuccessLogin={(user) => {
             setShowAuthModal(false);
+            setAuthModalInitialPhone('');
+            setAuthModalInitialAccessCode('');
             setFirebaseUser(user);
             setIsUnlocked(true);
             // Trigger a dynamic profile sync for the logged-in user

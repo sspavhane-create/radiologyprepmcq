@@ -37,6 +37,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigateTab,
   isUnlocked,
 }) => {
+  const [activeSectionTab, setActiveSectionTab] = React.useState<'main' | 'other'>('main');
+
   // Compute user progress stats
   let totalAttempted = 0;
   let totalCorrect = 0;
@@ -180,256 +182,292 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* =================================
           PROGRESS STATS OVERVIEW
           ================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-5">
         
         {/* Total MCQs Practiced */}
-        <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-6 border border-slate-800/80 hover:border-blue-500/20 shadow-xl transition-all flex items-center gap-4.5 group">
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
-            <Target className="w-7 h-7" />
+        <div className="bg-slate-900/40 backdrop-blur-md rounded-[16px] sm:rounded-[24px] p-2.5 sm:p-5 border border-slate-800/80 hover:border-blue-500/20 shadow-xl transition-all flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-2 sm:gap-4 group">
+          <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
+            <Target className="w-4.5 h-4.5 sm:w-7 sm:h-7" />
           </div>
-          <div className="space-y-0.5">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-wider">Practiced Questions</div>
-            <div className="text-2xl font-black text-white flex items-baseline gap-1">
+          <div className="space-y-0.5 min-w-0 w-full">
+            <div className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-wider truncate">Practiced</div>
+            <div className="text-sm sm:text-2xl font-black text-white flex items-baseline justify-center sm:justify-start gap-0.5 sm:gap-1">
               <span>{totalAttempted}</span>
-              <span className="text-xs text-slate-500 font-normal">/ 3000+</span>
+              <span className="text-[9px] sm:text-xs text-slate-500 font-normal">/ 3k+</span>
             </div>
           </div>
         </div>
 
         {/* Accuracy Rate */}
-        <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-6 border border-slate-800/80 hover:border-teal-500/20 shadow-xl transition-all flex items-center gap-4.5 group">
-          <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
-            <TrendingUp className="w-7 h-7" />
+        <div className="bg-slate-900/40 backdrop-blur-md rounded-[16px] sm:rounded-[24px] p-2.5 sm:p-5 border border-slate-800/80 hover:border-teal-500/20 shadow-xl transition-all flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-2 sm:gap-4 group">
+          <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
+            <TrendingUp className="w-4.5 h-4.5 sm:w-7 sm:h-7" />
           </div>
-          <div className="space-y-0.5">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-wider">Overall Accuracy</div>
-            <div className="text-2xl font-black text-teal-400">
+          <div className="space-y-0.5 min-w-0 w-full">
+            <div className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-wider truncate">Accuracy</div>
+            <div className="text-sm sm:text-2xl font-black text-teal-400 truncate">
               {accuracyRate}%
             </div>
           </div>
         </div>
 
         {/* Saved Bookmarks */}
-        <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-6 border border-slate-800/80 hover:border-amber-500/20 shadow-xl transition-all flex items-center gap-4.5 group">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
-            <Bookmark className="w-7 h-7" />
+        <div className="bg-slate-900/40 backdrop-blur-md rounded-[16px] sm:rounded-[24px] p-2.5 sm:p-5 border border-slate-800/80 hover:border-amber-500/20 shadow-xl transition-all flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-2 sm:gap-4 group">
+          <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
+            <Bookmark className="w-4.5 h-4.5 sm:w-7 sm:h-7" />
           </div>
-          <div className="space-y-0.5">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-wider">Saved MCQs</div>
-            <div className="text-2xl font-black text-amber-300">
-              {bookmarkedIds.length} <span className="text-xs text-slate-500 font-normal">items</span>
+          <div className="space-y-0.5 min-w-0 w-full">
+            <div className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-wider truncate">Saved</div>
+            <div className="text-sm sm:text-2xl font-black text-amber-300 truncate">
+              {bookmarkedIds.length} <span className="text-[9px] sm:text-xs text-slate-500 font-normal">MCQs</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* =================================
-          SECTION 1: 3000+ Radiology MCQs
+          TAB NAVIGATION SWITCHER (मल्टी-टॅब निवड)
           ================================= */}
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 shadow-md">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>3000+ Radiology MCQs</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium">
-                DHS • DMER • महाराष्ट्र तांत्रिक विभाग भरती परीक्षांसाठी संपूर्ण सराव प्रश्नसंच.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-center">
-            <span className="text-xs font-bold text-slate-500 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800">
-              Full Syllabus Updated
-            </span>
-          </div>
-        </div>
-
-        {/* Launch practice cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Practice Mode Card */}
-          <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 hover:border-blue-500/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/5 transition-all flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-all" />
-            
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
-                  Chapterwise Practice
-                </span>
-                <h3 className="text-xl font-black text-white mt-1">
-                  30 Radiology Chapters
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Deeply categorized practice questions covering Radiation Physics, Positioning & Procedures, CT Scan, MRI Scanner, Ultrasound, AERB radiation safety norms, and patient care.
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                <BookOpen className="w-6 h-6" />
-              </div>
-            </div>
-
-            <button
-              onClick={() => onNavigateTab('chapters')}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white font-extrabold rounded-2xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.99]"
-            >
-              <span>प्रकरणानुसार सराव उघडा (Open Chapters)</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Mock Test Card */}
-          <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 hover:border-amber-500/30 shadow-xl hover:shadow-2xl hover:shadow-amber-500/5 transition-all flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-all" />
-            
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
-                  200 Marks Grand Mock
-                </span>
-                <h3 className="text-xl font-black text-white mt-1">
-                  Real Exam Simulation
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Practice simulated tests consisting of 100 MCQs (80 Technical Core Radiology + 20 General Aptitude & Languages) in full exam timing with detailed results analysis.
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-                <Zap className="w-6 h-6" />
-              </div>
-            </div>
-
-            <button
-              onClick={() => onNavigateTab('mock-tests')}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl text-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.99]"
-            >
-              <span>मॉक टेस्ट सोडवा (Start Mock Test)</span>
-              <ArrowRight className="w-4 h-4 text-slate-950" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* =================================
-          SECTION 2: Other Radiology Exams
-          ================================= */}
-      <div className="space-y-5">
-        <div className="border-b border-slate-800 pb-4">
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 shrink-0">
-              <Award className="w-5 h-5" />
-            </div>
-            <span>Other Radiology Exams</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
-            Practice for all Central & State Radiographer recruitment examinations with high quality questions.
-          </p>
-        </div>
-
-        {/* Interactive Grid of exam badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-teal-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-300 flex items-center justify-center text-xs font-black">AIIMS</div>
-            <span className="text-xs font-bold text-slate-200">AIIMS Radiographer</span>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-blue-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-300 flex items-center justify-center text-xs font-black">ESIC</div>
-            <span className="text-xs font-bold text-slate-200">ESIC Radiographer</span>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-indigo-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-300 flex items-center justify-center text-xs font-black">RRB</div>
-            <span className="text-xs font-bold text-slate-200">Railway Radiographer</span>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-purple-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-300 flex items-center justify-center text-xs font-black">AERB</div>
-            <span className="text-xs font-bold text-slate-200">AERB Safety Exams</span>
-          </div>
-        </div>
-      </div>
-
-      {/* =================================
-          RECENT ACTIVITY & PERSISTENCE
-          ================================= */}
-      <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 shadow-xl space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-          <h3 className="text-base font-black text-white flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-400" />
-            <span>Recent Activity (तुमचा सराव इतिहास)</span>
-          </h3>
-          {recentSession && (
-            <span className="text-xs font-semibold text-slate-400">
-              {new Date(recentSession.endTime).toLocaleDateString('mr-IN', {
-                month: 'short',
-                day: 'numeric',
-              })}
-            </span>
-          )}
-        </div>
-
-        {recentSession ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-950 rounded-2xl border border-slate-850">
-            <div className="space-y-1">
-              <h4 className="text-sm sm:text-base font-black text-slate-200">{recentSession.title}</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Score: <strong className="text-teal-400 font-black text-sm">{recentSession.score}%</strong> ({recentSession.totalQuestions} Questions completed)
-              </p>
-            </div>
-
-            <button
-              onClick={() => onStartQuiz({ mode: 'core' })}
-              className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 self-start sm:self-center"
-            >
-              <span>Continue Practice (सराव सुरू ठेवा)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-500 space-y-3">
-            <p className="text-xs font-medium">No recent practice session recorded. Begin practicing to build your score tracker!</p>
-            <button
-              onClick={() => onStartQuiz({ mode: 'core' })}
-              className="px-5 py-2.5 bg-blue-600 text-white font-extrabold rounded-xl text-xs hover:bg-blue-500 cursor-pointer transition-all active:scale-95"
-            >
-              Start First Practice (पहिला सराव सुरू करा)
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* =================================
-          ANDROID STANDOUT BANNER
-          ================================= */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-[24px] p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group">
-        <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none group-hover:bg-white/10 transition-all" />
-        
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
-            <Smartphone className="w-7 h-7 text-white" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-black text-base sm:text-lg">Download Official Android Application 📱</h4>
-            <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Seamlessly practice offline and get fast mock answers anytime, anywhere directly on your mobile.
-            </p>
-          </div>
-        </div>
-
-        <a
-          href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
-          download="Radiology_Prep_MCQ.apk"
-          className="px-6 py-3.5 bg-white text-slate-950 hover:bg-blue-50 font-black rounded-2xl text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-[0.98] self-stretch md:self-auto justify-center"
+      <div className="bg-slate-900/40 p-1 rounded-[20px] border border-slate-800/80 max-w-md mx-auto grid grid-cols-2 gap-1.5 shadow-inner relative z-10 backdrop-blur-md">
+        <button
+          onClick={() => setActiveSectionTab('main')}
+          className={`py-2.5 px-4 rounded-[14px] text-xs sm:text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
+            activeSectionTab === 'main'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/10 scale-[1.01]'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
+          }`}
         >
-          <Download className="w-4 h-4" />
-          <span>Download Android App</span>
-        </a>
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <div className="flex flex-col items-center">
+            <span className="leading-none text-xs sm:text-sm">मुख्य अभ्यास व सराव</span>
+            <span className="text-[9px] opacity-75 mt-0.5 font-bold">Core Practice</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveSectionTab('other')}
+          className={`py-2.5 px-4 rounded-[14px] text-xs sm:text-sm font-black transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
+            activeSectionTab === 'other'
+              ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 shadow-lg shadow-teal-500/10 scale-[1.01]'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
+          }`}
+        >
+          <Award className="w-4 h-4 shrink-0" />
+          <div className="flex flex-col items-center">
+            <span className="leading-none text-xs sm:text-sm">इतर विशेष परीक्षा</span>
+            <span className="text-[9px] opacity-75 mt-0.5 font-bold">Other Exams</span>
+          </div>
+        </button>
       </div>
+
+      {/* =================================
+          TAB PANELS CONTENT
+          ================================= */}
+      {activeSectionTab === 'main' ? (
+        <div className="space-y-8 animate-fadeIn">
+          {/* SECTION 1: 3000+ Radiology MCQs */}
+          <div className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 shadow-md">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    <span>3000+ Radiology MCQs</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                    DHS • DMER • महाराष्ट्र तांत्रिक विभाग भरती परीक्षांसाठी संपूर्ण सराव प्रश्नसंच.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <span className="text-xs font-bold text-slate-500 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800">
+                  Full Syllabus Updated
+                </span>
+              </div>
+            </div>
+
+            {/* Launch practice cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Practice Mode Card */}
+              <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 hover:border-blue-500/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/5 transition-all flex flex-col justify-between space-y-6 relative overflow-hidden group">
+                <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-all" />
+                
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
+                      Chapterwise Practice
+                    </span>
+                    <h3 className="text-xl font-black text-white mt-1">
+                      30 Radiology Chapters
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Deeply categorized practice questions covering Radiation Physics, Positioning & Procedures, CT Scan, MRI Scanner, Ultrasound, AERB radiation safety norms, and patient care.
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateTab('chapters')}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white font-extrabold rounded-2xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.99]"
+                >
+                  <span>प्रकरणानुसार सराव उघडा (Open Chapters)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Mock Test Card */}
+              <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 hover:border-amber-500/30 shadow-xl hover:shadow-2xl hover:shadow-amber-500/5 transition-all flex flex-col justify-between space-y-6 relative overflow-hidden group">
+                <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-all" />
+                
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
+                      200 Marks Grand Mock
+                    </span>
+                    <h3 className="text-xl font-black text-white mt-1">
+                      Real Exam Simulation
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Practice simulated tests consisting of 100 MCQs (80 Technical Core Radiology + 20 General Aptitude & Languages) in full exam timing with detailed results analysis.
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateTab('mock-tests')}
+                  className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl text-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.99]"
+                >
+                  <span>मॉक टेस्ट सोडवा (Start Mock Test)</span>
+                  <ArrowRight className="w-4 h-4 text-slate-950" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RECENT ACTIVITY & PERSISTENCE */}
+          <div className="bg-slate-900/60 rounded-[24px] p-6 border border-slate-800/80 shadow-xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-400" />
+                <span>Recent Activity (तुमचा सराव इतिहास)</span>
+              </h3>
+              {recentSession && (
+                <span className="text-xs font-semibold text-slate-400">
+                  {new Date(recentSession.endTime).toLocaleDateString('mr-IN', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
+              )}
+            </div>
+
+            {recentSession ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-950 rounded-2xl border border-slate-850">
+                <div className="space-y-1">
+                  <h4 className="text-sm sm:text-base font-black text-slate-200">{recentSession.title}</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Score: <strong className="text-teal-400 font-black text-sm">{recentSession.score}%</strong> ({recentSession.totalQuestions} Questions completed)
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => onStartQuiz({ mode: 'core' })}
+                  className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 self-start sm:self-center"
+                >
+                  <span>Continue Practice (सराव सुरू ठेवा)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500 space-y-3">
+                <p className="text-xs font-medium">No recent practice session recorded. Begin practicing to build your score tracker!</p>
+                <button
+                  onClick={() => onStartQuiz({ mode: 'core' })}
+                  className="px-5 py-2.5 bg-blue-600 text-white font-extrabold rounded-xl text-xs hover:bg-blue-500 cursor-pointer transition-all active:scale-95"
+                >
+                  Start First Practice (पहिला सराव सुरू करा)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-8 animate-fadeIn">
+          {/* SECTION 2: Other Radiology Exams */}
+          <div className="space-y-5">
+            <div className="border-b border-slate-800 pb-4">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <span>Other Radiology Exams</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
+                Practice for all Central & State Radiographer recruitment examinations with high quality questions.
+              </p>
+            </div>
+
+            {/* Interactive Grid of exam badges */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-teal-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-300 flex items-center justify-center text-xs font-black">AIIMS</div>
+                <span className="text-xs font-bold text-slate-200">AIIMS Radiographer</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-blue-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-300 flex items-center justify-center text-xs font-black">ESIC</div>
+                <span className="text-xs font-bold text-slate-200">ESIC Radiographer</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-indigo-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-300 flex items-center justify-center text-xs font-black">RRB</div>
+                <span className="text-xs font-bold text-slate-200">Railway Radiographer</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-2 hover:border-purple-500/30 transition-all hover:bg-slate-900/60 cursor-pointer" onClick={() => onStartQuiz({ mode: 'core' })}>
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-300 flex items-center justify-center text-xs font-black">AERB</div>
+                <span className="text-xs font-bold text-slate-200">AERB Safety Exams</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ANDROID STANDOUT BANNER */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-[24px] p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group">
+            <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none group-hover:bg-white/10 transition-all" />
+            
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+                <Smartphone className="w-7 h-7 text-white" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black text-base sm:text-lg">Download Official Android Application 📱</h4>
+                <p className="text-xs sm:text-sm text-blue-100 font-medium">
+                  Seamlessly practice offline and get fast mock answers anytime, anywhere directly on your mobile.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
+              download="Radiology_Prep_MCQ.apk"
+              className="px-6 py-3.5 bg-white text-slate-950 hover:bg-blue-50 font-black rounded-2xl text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-[0.98] self-stretch md:self-auto justify-center"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Android App</span>
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

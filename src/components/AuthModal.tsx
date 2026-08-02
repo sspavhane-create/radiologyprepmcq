@@ -30,6 +30,8 @@ interface AuthModalProps {
   isUnlocked?: boolean;
   userProfile?: UserProfile | null;
   onLogout?: () => void;
+  initialPhoneNumber?: string;
+  initialAccessCode?: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -37,10 +39,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccessLogin,
   isUnlocked = false,
   userProfile = null,
-  onLogout
+  onLogout,
+  initialPhoneNumber = '',
+  initialAccessCode = ''
 }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [accessCode, setAccessCode] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber);
+  const [accessCode, setAccessCode] = useState(initialAccessCode);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);

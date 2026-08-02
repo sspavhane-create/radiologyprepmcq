@@ -469,6 +469,23 @@ export const PremiumUnlockModal: React.FC<PremiumUnlockModalProps> = ({
                 )}
                 <span>{submittingPayment ? 'पाठवत आहे...' : 'स्क्रीनशॉट व माहिती WhatsApp (9769441271) वर पाठवा'}</span>
               </button>
+
+              <div className="pt-2.5 border-t border-slate-800 text-center space-y-1">
+                <p className="text-[10px] text-slate-400 font-medium">पेमेंट केले असल्यास थेट लॉगिन करा:</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('open-premium-login', {
+                      detail: { phone: studentPhone, code: activationCode }
+                    }));
+                  }}
+                  className="w-full py-2 bg-slate-850 hover:bg-slate-800 text-amber-400 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700 transition-all"
+                >
+                  <Unlock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>आधीच पेमेंट केले आहे? येथे लॉगिन करा</span>
+                </button>
+              </div>
             </form>
           )}
         </div>

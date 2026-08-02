@@ -343,6 +343,22 @@ export const PremiumView: React.FC<PremiumViewProps> = ({
                   )}
                   <span>{isSubmitting ? 'पाठवत आहे...' : 'स्क्रीनशॉट व पेमेंट माहिती WhatsApp (9769441271) वर पाठवा'}</span>
                 </button>
+
+                <div className="pt-3 border-t border-slate-100 text-center space-y-1.5">
+                  <p className="text-[11px] text-slate-500 font-medium">पेमेंट केले असल्यास थेट लॉगिन करा (Already Paid?):</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open-premium-login', {
+                        detail: { phone: studentPhone, code: activationCode }
+                      }));
+                    }}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer border border-slate-800 shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <Unlock className="w-4 h-4 text-amber-400" />
+                    <span>आधीच पेमेंट केले आहे? येथे लॉगिन करा</span>
+                  </button>
+                </div>
               </form>
             ) : (
               <div className="space-y-4">
@@ -384,6 +400,21 @@ export const PremiumView: React.FC<PremiumViewProps> = ({
                   <Key className="w-5 h-5 text-amber-400" />
                   <span>Activate Key Now</span>
                 </button>
+
+                <div className="pt-3 border-t border-slate-100 text-center space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open-premium-login', {
+                        detail: { phone: studentPhone, code: activationCode }
+                      }));
+                    }}
+                    className="w-full py-2.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-teal-500/20 transition-all"
+                  >
+                    <Unlock className="w-3.5 h-3.5 text-teal-600" />
+                    <span>किंवा रजिस्टर मोबाईल व कोडने लॉगिन करा</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
