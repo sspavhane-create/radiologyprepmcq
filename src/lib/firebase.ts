@@ -16,6 +16,7 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   onSnapshot, 
   collection, 
   getDocs,
@@ -53,11 +54,33 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
-// Initialize Firestore with specific databaseId if configured and force long polling to bypass proxy issues
+// Initialize Firestore with auto-detect long polling to prevent connection timeouts
 const databaseId = firebaseConfigJson.firestoreDatabaseId || '(default)';
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 }, databaseId);
+
+// Helper function to prevent operations from hanging if backend latency is high
+export const promiseWithTimeout = <T>(
+  promise: Promise<T>,
+  ms: number = 8000,
+  timeoutErrorMsg: string = 'Operation timed out'
+): Promise<T> => {
+  let timer: any;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(timeoutErrorMsg));
+    }, ms);
+  });
+
+  return Promise.race([
+    promise.then((res) => {
+      clearTimeout(timer);
+      return res;
+    }),
+    timeoutPromise,
+  ]);
+};
 
 // Enable IndexedDB offline persistence safely
 if (typeof window !== 'undefined') {
@@ -625,6 +648,167 @@ export const saveBreakingNews = async (items: string[]): Promise<boolean> => {
   } catch (err) {
     console.error('Error saving breaking news:', err);
     return false;
+  }
+};
+
+import { CHAPTER_COLLECTION } from '../data/masterQuestionBank';
+
+// Supabase / Cloud Firestore Real-time Auto-Sync for Questions
+export const syncAll30ChaptersFromMasterToCloud = async (
+  customQuestions: any[] = []
+): Promise<{ success: boolean; totalSynced: number; chaptersCount: number; error?: string }> => {
+  try {
+    const chaptersCol = collection(db, 'public_mcqs');
+    let totalSynced = 0;
+    let chaptersCount = 0;
+
+    // Group custom questions by chapterId or source_page
+    const customByChapterId: Record<number, any[]> = {};
+    customQuestions.forEach((q) => {
+      const chId = Number(q.source_page || q.chapterId);
+      if (chId && !isNaN(chId)) {
+        if (!customByChapterId[chId]) customByChapterId[chId] = [];
+        customByChapterId[chId].push(q);
+      }
+    });
+
+    // Loop through all 30 chapter files (CHAPTER_COLLECTION)
+    for (const chapMeta of CHAPTER_COLLECTION) {
+      const chapterId = chapMeta.id;
+      const baseQs = chapMeta.questionArray || [];
+      const extraQs = customByChapterId[chapterId] || [];
+
+      // Deduplicate questions by ID or question text
+      const seenIds = new Set<string | number>();
+      const combinedQs: any[] = [];
+
+      [...baseQs, ...extraQs].forEach(q => {
+        const key = q.id || q.question;
+        if (!seenIds.has(key)) {
+          seenIds.add(key);
+          combinedQs.push({
+            ...q,
+            chapterId: chapterId,
+            category: chapMeta.category
+          });
+        }
+      });
+
+      const docId = `chapter_${chapterId}`;
+      const docRef = doc(chaptersCol, docId);
+
+      // setDoc without merge so questions array is strictly updated to combinedQs (deletions reflected)
+      await promiseWithTimeout(
+        setDoc(
+          docRef,
+          {
+            chapterId: chapterId,
+            category: chapMeta.category,
+            title: chapMeta.title,
+            titleMr: chapMeta.titleMr,
+            questionCount: combinedQs.length,
+            questions: combinedQs,
+            lastSyncedAt: new Date().toISOString(),
+          }
+        ),
+        10000,
+        `Cloud sync timed out for Chapter ${chapterId}`
+      );
+
+      totalSynced += combinedQs.length;
+      chaptersCount += 1;
+    }
+
+    // Clean up obsolete non-chapter documents in public_mcqs collection
+    try {
+      const allDocsSnap = await promiseWithTimeout(getDocs(chaptersCol), 5000, 'Obsolete docs check timeout');
+      allDocsSnap.forEach((docSnap) => {
+        if (!docSnap.id.startsWith('chapter_')) {
+          deleteDoc(docSnap.ref).catch(() => {});
+        }
+      });
+    } catch (e) {
+      console.warn('Note: obsolete doc cleanup:', e);
+    }
+
+    // Save master stats
+    const statsDocRef = doc(db, 'settings', 'question_bank_stats');
+    await promiseWithTimeout(
+      setDoc(
+        statsDocRef,
+        {
+          totalQuestionsCount: totalSynced,
+          chaptersCount: chaptersCount,
+          lastSyncTimestamp: new Date().toISOString(),
+        },
+        { merge: true }
+      ),
+      8000,
+      'Stats sync timed out'
+    );
+
+    return { success: true, totalSynced, chaptersCount };
+  } catch (err: any) {
+    console.warn('Sync All 30 Chapters Error:', err);
+    return { success: false, totalSynced: 0, chaptersCount: 0, error: err?.message || String(err) };
+  }
+};
+
+export const syncAllChaptersToCloud = async (
+  questionsList: any[]
+): Promise<{ success: boolean; count: number; error?: string }> => {
+  try {
+    // Extract custom questions if a full list was passed, or sync custom questions directly
+    const customQs = Array.isArray(questionsList)
+      ? questionsList.filter(q => q.isCustom || q.batchId || q.importedAt || (typeof q.id === 'string' && String(q.id).startsWith('custom_')))
+      : [];
+    const res = await syncAll30ChaptersFromMasterToCloud(customQs);
+    return { success: res.success, count: res.totalSynced, error: res.error };
+  } catch (err: any) {
+    console.warn('Cloud Sync Note:', err?.message || err);
+    return { success: false, count: 0, error: err?.message || String(err) };
+  }
+};
+
+export const fetchCloudQuestions = async (): Promise<any[]> => {
+  try {
+    const chaptersCol = collection(db, 'public_mcqs');
+    const snap = await promiseWithTimeout(getDocs(chaptersCol), 8000, 'Cloud fetch timed out');
+    const allQs: any[] = [];
+    snap.forEach((docSnap) => {
+      if (docSnap.id.startsWith('chapter_')) {
+        const data = docSnap.data();
+        if (Array.isArray(data.questions)) {
+          allQs.push(...data.questions);
+        }
+      }
+    });
+    return allQs;
+  } catch (err) {
+    console.warn('Could not fetch cloud questions:', err);
+    return [];
+  }
+};
+
+export const subscribeToPublicMcqs = (onUpdate: (cloudQs: any[]) => void) => {
+  try {
+    const chaptersCol = collection(db, 'public_mcqs');
+    return onSnapshot(chaptersCol, (snap) => {
+      const allQs: any[] = [];
+      snap.forEach((docSnap) => {
+        if (docSnap.id.startsWith('chapter_')) {
+          const data = docSnap.data();
+          if (Array.isArray(data.questions)) {
+            allQs.push(...data.questions);
+          }
+        }
+      });
+      onUpdate(allQs);
+    }, (err) => {
+      console.warn('public_mcqs live listener note:', err);
+    });
+  } catch (e) {
+    return () => {};
   }
 };
 

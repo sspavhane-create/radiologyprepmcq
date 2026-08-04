@@ -122,6 +122,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <BookOpen className="w-5 h-5 text-cyan-400" />
                 <span>Browse Chapters (प्रकरणे पहा)</span>
               </button>
+
+              <a
+                href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
+                download="Radiology_Prep_MCQ.apk"
+                className="px-5 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-extrabold rounded-2xl transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer shadow-md active:scale-[0.98]"
+              >
+                <Smartphone className="w-5 h-5 text-emerald-400" />
+                <span>APK ॲप डाउनलोड करा</span>
+              </a>
             </div>
           </div>
 
@@ -440,34 +449,34 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
           </div>
-
-          {/* ANDROID STANDOUT BANNER */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-[24px] p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group">
-            <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none group-hover:bg-white/10 transition-all" />
-            
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
-                <Smartphone className="w-7 h-7 text-white" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-black text-base sm:text-lg">Download Official Android Application 📱</h4>
-                <p className="text-xs sm:text-sm text-blue-100 font-medium">
-                  Seamlessly practice offline and get fast mock answers anytime, anywhere directly on your mobile.
-                </p>
-              </div>
-            </div>
-
-            <a
-              href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
-              download="Radiology_Prep_MCQ.apk"
-              className="px-6 py-3.5 bg-white text-slate-950 hover:bg-blue-50 font-black rounded-2xl text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-[0.98] self-stretch md:self-auto justify-center"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Android App</span>
-            </a>
-          </div>
         </div>
       )}
+
+      {/* ANDROID STANDOUT BANNER (ALWAYS VISIBLE) */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-[24px] p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group mt-6">
+        <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none group-hover:bg-white/10 transition-all" />
+        
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+            <Smartphone className="w-7 h-7 text-white" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-black text-base sm:text-lg">Download Official Android Application 📱</h4>
+            <p className="text-xs sm:text-sm text-blue-100 font-medium">
+              Seamlessly practice offline and get fast mock answers anytime, anywhere directly on your mobile.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="https://github.com/sspavhane-create/radiologyprepmcq/releases/latest/download/Radiology_Prep_MCQ.apk"
+          download="Radiology_Prep_MCQ.apk"
+          className="px-6 py-3.5 bg-white text-slate-950 hover:bg-blue-50 font-black rounded-2xl text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-[0.98] self-stretch md:self-auto justify-center"
+        >
+          <Download className="w-4 h-4" />
+          <span>Download Android App (APK)</span>
+        </a>
+      </div>
     </div>
   );
 };

@@ -19,5 +19,11 @@ service cloud.firestore {
     match /settings/{documentId} {
       allow read, write: if true;
     }
+    match /public_mcqs/{docId} {
+      allow read, write: if true;
+    }
+    match /userAppData/{docId} {
+      allow read, write: if true;
+    }
   }
 }

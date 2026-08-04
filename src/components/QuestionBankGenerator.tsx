@@ -5,6 +5,7 @@ import { ALL_30_CHAPTERS } from '../data/chaptersData';
 import { getIsPremiumUnlocked } from '../lib/storage';
 import { PremiumUnlockModal } from './PremiumUnlockModal';
 import { SearchInspectView } from './SearchInspectView';
+import { JsonUploadSection } from './JsonUploadSection';
 import { 
   Sparkles, 
   Download, 
@@ -25,7 +26,9 @@ import {
   Award,
   Lock,
   Play,
-  Key
+  Key,
+  FolderPlus,
+  X
 } from 'lucide-react';
 
 interface QuestionBankGeneratorProps {
@@ -33,6 +36,8 @@ interface QuestionBankGeneratorProps {
   onAddMultipleQuestions: (newQs: Question[]) => void;
   onNavigateTab: (tab: string) => void;
   onAskAITutor?: (question: Question) => void;
+  onJumpToChapter?: (chapterId: number, questionId?: number) => void;
+  onOpenDeepResearch?: () => void;
   isUnlocked?: boolean;
   langMode?: 'dual' | 'en' | 'mr';
 }
@@ -42,6 +47,8 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   onAddMultipleQuestions,
   onNavigateTab,
   onAskAITutor,
+  onJumpToChapter,
+  onOpenDeepResearch,
   isUnlocked: isUnlockedProp = false,
   langMode = 'dual',
 }) => {
@@ -55,6 +62,7 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
   const [activeBookTab, setActiveBookTab] = useState<'generator' | 'chapters' | 'all'>('chapters');
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isUnlockedProp || getIsPremiumUnlocked());
   const [showUnlockModal, setShowUnlockModal] = useState<boolean>(false);
+  const [uploadModalChapterId, setUploadModalChapterId] = useState<number | null>(null);
 
   useEffect(() => {
     setIsUnlocked(isUnlockedProp || getIsPremiumUnlocked());
@@ -230,6 +238,16 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
               <strong className="text-white text-base font-bold">{questions.length} Qs</strong>
             </div>
 
+            {onOpenDeepResearch && (
+              <button
+                onClick={onOpenDeepResearch}
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-teal-300 font-bold px-4 py-2 rounded-xl text-xs transition-all border border-teal-500/40 shadow-md"
+              >
+                <Sparkles className="w-4 h-4 text-teal-400 animate-pulse" />
+                <span>🔬 डीप रिसर्च रिपोर्ट (Deep Research Analysis)</span>
+              </button>
+            )}
+
             <button
               onClick={() => onNavigateTab('quiz')}
               className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110 text-slate-950 font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-lg shadow-teal-500/20"
@@ -242,7 +260,7 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveBookTab('chapters')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
@@ -278,6 +296,16 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
           <Layers className="w-4 h-4" />
           <span>सर्व प्रश्न यादी (Search & Inspect)</span>
         </button>
+
+        {onOpenDeepResearch && (
+          <button
+            onClick={onOpenDeepResearch}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all ml-auto"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>साम्य प्रश्न पृथक्करण (Deep Research)</span>
+          </button>
+        )}
       </div>
 
       {/* Notifications */}
@@ -371,6 +399,15 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
                     >
                       <Zap className="w-3.5 h-3.5 text-amber-400" />
                       <span>माॉक टेस्ट</span>
+                    </button>
+
+                    <button
+                      onClick={() => setUploadModalChapterId(chap.id)}
+                      className="col-span-2 flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-800 text-teal-300 font-bold py-2 px-2 rounded-xl text-xs border border-teal-500/40 hover:border-teal-400 transition-all cursor-pointer shadow-sm"
+                      title={`Chapter ${chap.id} मध्ये MCQ प्रश्न जोडण्यासाठी JSON फाईल अपलोड करा`}
+                    >
+                      <FolderPlus className="w-3.5 h-3.5 text-teal-400" />
+                      <span>+ Add MCQs (JSON Upload)</span>
                     </button>
                   </div>
                 </div>
@@ -482,55 +519,50 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
               </div>
             </div>
 
-            {/* Tool 2: Bulk JSON Import */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">२. फायलींमधून प्रश्न आयात करा (Import JSON)</h2>
-                  <p className="text-xs text-slate-400">तयार केलेल्या २०००-३००० प्रश्नांची फाईल एका क्लिकवर जोडा.</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 text-xs text-slate-300">
-                <div className="border-2 border-dashed border-slate-700 hover:border-teal-400 rounded-2xl p-6 text-center space-y-3 transition-colors bg-slate-950/50">
-                  <FileJson className="w-8 h-8 text-cyan-400 mx-auto" />
-                  <div>
-                    <p className="font-bold text-white">JSON फाईल निवडा किंवा ड्रॅग करा</p>
-                    <p className="text-[11px] text-slate-400">(.json फॉरमॅट सपोर्टेड - unlimited questions)</p>
-                  </div>
-                  <label className="inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold rounded-xl cursor-pointer border border-slate-700 hover:border-teal-400/50 transition-all">
-                    <span>Browse File</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-300">मानक JSON फॉरमॅट टेम्पलेट (Schema):</span>
-                    <button
-                      onClick={handleCopyTemplate}
-                      className="flex items-center gap-1 text-[11px] font-bold text-teal-400 hover:text-teal-300"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>{copiedTemplate ? 'Copied!' : 'Copy Schema'}</span>
-                    </button>
-                  </div>
-                  <pre className="text-[10px] text-teal-300/90 font-mono bg-slate-900 p-2.5 rounded-lg overflow-x-auto max-h-28 border border-slate-850">
-                    {sampleJsonTemplate}
-                  </pre>
-                </div>
-              </div>
-            </div>
+            {/* Tool 2: Direct JSON Import & Chapter Target Selection */}
+            <JsonUploadSection
+              questions={questions}
+              onAddMultipleQuestions={onAddMultipleQuestions}
+            />
           </div>
         )
+      )}
+
+      {/* CHAPTER TARGETED JSON UPLOAD MODAL */}
+      {uploadModalChapterId !== null && (
+        <div 
+          onClick={() => setUploadModalChapterId(null)}
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md p-3 sm:p-5 flex items-center justify-center animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl bg-slate-900 border border-teal-500/50 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-amber-400 shrink-0" />
+                <h3 className="text-sm sm:text-base font-extrabold text-white">
+                  Chapter #{uploadModalChapterId} MCQ प्रश्न अपलोड व क्लाउड सिंक
+                </h3>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setUploadModalChapterId(null)}
+                className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
+                title="बंद करा"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <JsonUploadSection
+              questions={questions}
+              onAddMultipleQuestions={onAddMultipleQuestions}
+              defaultChapterId={uploadModalChapterId}
+              onSuccess={() => setUploadModalChapterId(null)}
+            />
+          </div>
+        </div>
       )}
 
       {/* TAB 3: SEARCH & INSPECT VIEW (Questions list with 40-reveal free limit and answer hide/reveal) */}
@@ -539,6 +571,7 @@ export const QuestionBankGenerator: React.FC<QuestionBankGeneratorProps> = ({
           questions={questions}
           onAskAITutor={onAskAITutor}
           onNavigateTab={onNavigateTab}
+          onJumpToChapter={onJumpToChapter}
         />
       )}
 

@@ -34,6 +34,7 @@ interface SearchInspectViewProps {
   langMode?: LanguageMode;
   onAskAITutor?: (question: Question) => void;
   onNavigateTab?: (tab: string) => void;
+  onJumpToChapter?: (chapterId: number, questionId?: number) => void;
   isUnlocked?: boolean;
 }
 
@@ -42,6 +43,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
   langMode = 'dual',
   onAskAITutor,
   onNavigateTab,
+  onJumpToChapter,
   isUnlocked: isUnlockedProp = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -384,7 +386,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
 
             return (
               <div 
-                key={q.id}
+                key={`${q.id}_${index}`}
                 className={`bg-slate-900 border rounded-2xl p-5 sm:p-6 space-y-4 transition-all shadow-md ${
                   isShowContent
                     ? 'border-emerald-500/40 bg-slate-900/95 ring-1 ring-emerald-500/20'
@@ -393,7 +395,7 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
               >
                 {/* Question Header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-md bg-slate-950 font-mono text-xs font-bold text-teal-400 border border-slate-800">
                       Q.{index + 1} (#{q.id})
                     </span>
@@ -404,6 +406,17 @@ export const SearchInspectView: React.FC<SearchInspectViewProps> = ({
                       <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 text-[11px] font-semibold uppercase">
                         {q.section}
                       </span>
+                    )}
+
+                    {/* Direct Chapter Jump Button */}
+                    {onJumpToChapter && (
+                      <button
+                        onClick={() => onJumpToChapter(q.chapterId || 1, q.id)}
+                        className="px-2.5 py-0.5 rounded-lg bg-teal-500/20 hover:bg-teal-500 text-teal-300 hover:text-slate-950 text-[11px] font-bold border border-teal-500/30 transition-all flex items-center gap-1 shadow-sm"
+                        title="या प्रकरणावर जाऊन अभ्यास करा"
+                      >
+                        <span>📍 या प्रकरणावर जा ({q.chapterId ? `Ch #${q.chapterId}` : 'Chapter'})</span>
+                      </button>
                     )}
                   </div>
 

@@ -209,7 +209,7 @@ export const ResultSummary: React.FC<ResultSummaryProps> = ({
 
             return (
               <div
-                key={q.id}
+                key={`${q.id}_${idx}`}
                 className={`p-5 rounded-2xl border space-y-3 bg-slate-900 ${
                   isCorrect ? 'border-slate-800' : 'border-rose-500/40'
                 }`}

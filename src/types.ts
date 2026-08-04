@@ -15,6 +15,10 @@ export interface Question {
   isCustom?: boolean;
   topic?: string;
   chapter_name?: string;
+  chapterId?: number;
+  batchId?: string;
+  importedAt?: string;
+  batchName?: string;
 }
 
 export interface CategoryInfo {

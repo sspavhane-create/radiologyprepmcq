@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ALL_30_CHAPTERS } from './data/chaptersData';
 import { Question, QuizSession, UserAnswer, QuestionBookmark, LanguageMode } from './types';
 import { 
   getAllQuestions, 
@@ -10,7 +11,8 @@ import {
   getFlashcardConfidence,
   setFlashcardConfidence as setConfidenceStorage,
   getIsPremiumUnlocked,
-  setPremiumUnlocked
+  setPremiumUnlocked,
+  subscribeToUserAppData
 } from './lib/storage';
 import { 
   auth, 
@@ -19,6 +21,7 @@ import {
   getDeviceId, 
   getUserProfile, 
   subscribeToDeviceSession, 
+  subscribeToPublicMcqs,
   UserProfile, 
   User as FirebaseUser,
   registerUserDeviceAndLogin
@@ -40,7 +43,9 @@ import { QuestionBankGenerator } from './components/QuestionBankGenerator';
 import { AuthModal } from './components/AuthModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { DeepResearchReportModal } from './components/DeepResearchReportModal';
 import { BreakingNewsTicker } from './components/BreakingNewsTicker';
+import { MASTER_QUESTION_BANK, DEDUPLICATED_QUESTION_BANK, CHAPTER_COLLECTION } from './data/masterQuestionBank';
 import { ShieldAlert, Smartphone, Download } from 'lucide-react';
 
 export default function App() {
@@ -90,6 +95,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
+  const [showDeepResearchModal, setShowDeepResearchModal] = useState<boolean>(false);
   const [deviceMismatchAlert, setDeviceMismatchAlert] = useState<boolean>(false);
   const [authModalInitialPhone, setAuthModalInitialPhone] = useState<string>('');
   const [authModalInitialAccessCode, setAuthModalInitialAccessCode] = useState<string>('');
@@ -97,6 +103,26 @@ export default function App() {
   const handleSelectCategoryForChapters = (catName: string) => {
     setSelectedCategoryFilter(catName);
     setActiveTab('chapters');
+  };
+
+  const handleJumpToChapter = (chapterId: number, questionId?: number) => {
+    const chapter = CHAPTER_COLLECTION.find(c => c.id === chapterId);
+    if (chapter) {
+      setSelectedCategoryFilter(chapter.title);
+    }
+    setActiveTab('chapters');
+    if (questionId) {
+      // Direct jump or preview if needed
+      handleSelectQuestionDirect(questionId);
+    }
+  };
+
+  const handleSelectBankMode = (isDeduplicated: boolean) => {
+    if (isDeduplicated) {
+      setQuestions(DEDUPLICATED_QUESTION_BANK);
+    } else {
+      setQuestions(MASTER_QUESTION_BANK);
+    }
   };
   
   // Active Quiz State
@@ -118,12 +144,25 @@ export default function App() {
   const [aiTutorQuestion, setAiTutorQuestion] = useState<Question | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
 
-  // Load storage data on mount
+  // Load storage data on mount & subscribe to real-time cloud data updates
   useEffect(() => {
     setQuestions(getAllQuestions());
     setQuizSessions(getQuizSessions());
     setBookmarks(getBookmarks());
     setConfidenceRatings(getFlashcardConfidence());
+
+    const unsubUser = subscribeToUserAppData(() => {
+      setQuestions(getAllQuestions());
+    });
+
+    const unsubPublic = subscribeToPublicMcqs(() => {
+      setQuestions(getAllQuestions());
+    });
+
+    return () => {
+      if (unsubUser) unsubUser();
+      if (unsubPublic) unsubPublic();
+    };
   }, []);
 
   // Custom event listener to open Premium Login with initial values from pay screen
@@ -238,8 +277,9 @@ export default function App() {
   };
 
   const handleStartQuiz = (options: {
-    mode: 'exam' | 'practice' | 'category' | 'core' | 'saved' | 'missed';
+    mode: 'exam' | 'practice' | 'category' | 'core' | 'saved' | 'missed' | 'chapter';
     category?: string;
+    chapterId?: number;
     questionIds?: number[];
     isCentral?: boolean;
   }) => {
@@ -279,6 +319,18 @@ export default function App() {
     } else if (options.mode === 'core') {
       quizSet = questions.filter(q => q.id <= 15 || q.section === 'technical');
       title = 'क्ष-किरण तांत्रिकी मुख्य सराव संच (Technical Core Practice)';
+    } else if (options.mode === 'chapter' && options.chapterId !== undefined) {
+      const chapterObj = ALL_30_CHAPTERS.find(c => c.id === options.chapterId);
+      quizSet = questions.filter(q => {
+        if (!chapterObj) return q.chapterId === options.chapterId;
+        return (
+          q.chapterId === options.chapterId ||
+          q.source_page === options.chapterId ||
+          (q.chapter_name && q.chapter_name.toLowerCase().includes(chapterObj.title.toLowerCase())) ||
+          (q.chapter_name && chapterObj.titleMr && q.chapter_name.toLowerCase().includes(chapterObj.titleMr.toLowerCase()))
+        );
+      });
+      title = chapterObj ? `${chapterObj.titleMr} - Chapter Practice` : `Chapter #${options.chapterId} Practice`;
     } else if (options.mode === 'category' && options.category) {
       quizSet = questions.filter(q => q.category === options.category);
       title = `${options.category} - Chapter Practice`;
@@ -437,6 +489,7 @@ export default function App() {
               setActiveQuizQuestions(null);
               setActiveTab('home');
             }}
+            onJumpToChapter={handleJumpToChapter}
             initialQuestionIndex={initialQuestionIndex}
             isCentral={isCentralQuiz}
           />
@@ -459,6 +512,7 @@ export default function App() {
             selectedCategoryFilter={selectedCategoryFilter}
             onSelectCategoryFilter={setSelectedCategoryFilter}
             onStartQuizCategory={(cat) => handleStartQuiz({ mode: 'category', category: cat })}
+            onStartQuizChapter={(chapId) => handleStartQuiz({ mode: 'chapter', chapterId: chapId })}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
             onGenerateCategoryQuestions={(cat) => setIsAddModalOpen(true)}
             onSelectQuestionDirect={handleSelectQuestionDirect}
@@ -522,11 +576,21 @@ export default function App() {
             onAddMultipleQuestions={handleAddMultipleQuestions}
             onNavigateTab={setActiveTab}
             onAskAITutor={(q) => setAiTutorQuestion(q)}
+            onJumpToChapter={handleJumpToChapter}
+            onOpenDeepResearch={() => setShowDeepResearchModal(true)}
             isUnlocked={isUnlocked}
             langMode={langMode}
           />
         ) : null}
       </main>
+
+      {/* Deep Research Question Bank Modal */}
+      <DeepResearchReportModal
+        isOpen={showDeepResearchModal}
+        onClose={() => setShowDeepResearchModal(false)}
+        onJumpToChapter={handleJumpToChapter}
+        onSelectBankMode={handleSelectBankMode}
+      />
 
       {/* Bottom Navigation Bar */}
       {!activeQuizQuestions && !quizResult && (
@@ -602,6 +666,9 @@ export default function App() {
       {showAdminPanel && (
         <AdminPanelModal
           onClose={() => setShowAdminPanel(false)}
+          questions={questions}
+          onAddMultipleQuestions={handleAddMultipleQuestions}
+          onRefreshQuestions={() => setQuestions(getAllQuestions())}
         />
       )}
     </div>

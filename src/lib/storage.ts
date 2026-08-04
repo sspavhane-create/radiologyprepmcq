@@ -1,5 +1,7 @@
 import { Question, QuizSession, QuestionBookmark } from '../types';
 import { INITIAL_QUESTIONS } from '../data/initialQuestions';
+import { db, promiseWithTimeout, syncAll30ChaptersFromMasterToCloud } from './firebase';
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   BOOKMARKS: 'xray_prep_bookmarks',
@@ -10,6 +12,22 @@ const STORAGE_KEYS = {
   DEVICE_ID: 'xray_prep_device_id',
   ACTIVATION_INFO: 'xray_prep_activation_info',
   REVEALED_ANSWERS: 'xray_prep_revealed_answers',
+};
+
+// Helper for cloud sync to Firestore
+const syncUserDataToFirestore = async (key: string, data: any) => {
+  try {
+    const devId = getDeviceId();
+    const storedUid = localStorage.getItem('xray_prep_logged_in_uid') || devId;
+    const userDocRef = doc(db, 'userAppData', storedUid);
+    await promiseWithTimeout(
+      setDoc(userDocRef, { [key]: data, updatedAt: new Date().toISOString() }, { merge: true }),
+      5000,
+      'User app data sync timed out'
+    );
+  } catch (err) {
+    console.warn(`Firestore sync for ${key} failed (offline/sandbox):`, err);
+  }
 };
 
 // Generate or retrieve a persistent Unique Device ID for this browser/device
@@ -205,6 +223,7 @@ export const toggleBookmark = (questionId: number, notes?: string): QuestionBook
   }
 
   localStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(updated));
+  syncUserDataToFirestore('bookmarks', updated);
   return updated;
 };
 
@@ -226,6 +245,7 @@ export const saveQuizSession = (session: QuizSession): QuizSession[] => {
   const current = getQuizSessions();
   const updated = [session, ...current];
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
+  syncUserDataToFirestore('quizSessions', updated);
   return updated;
 };
 
@@ -242,7 +262,58 @@ export const saveCustomQuestion = (question: Question): Question[] => {
   const current = getCustomQuestions();
   const updated = [...current, question];
   localStorage.setItem(STORAGE_KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  syncUserDataToFirestore('customQuestions', updated);
+  syncAll30ChaptersFromMasterToCloud(updated).catch(() => {});
   return updated;
+};
+
+export const saveAllCustomQuestions = (customList: Question[]): Question[] => {
+  localStorage.setItem(STORAGE_KEYS.CUSTOM_QUESTIONS, JSON.stringify(customList));
+  syncUserDataToFirestore('customQuestions', customList);
+  syncAll30ChaptersFromMasterToCloud(customList).catch(() => {});
+  return customList;
+};
+
+export const deleteCustomQuestionsByIds = (idsToRemove: (number | string)[]): Question[] => {
+  const current = getCustomQuestions();
+  const idsSet = new Set(idsToRemove.map(id => String(id)));
+  const updated = current.filter(q => !idsSet.has(String(q.id)));
+  localStorage.setItem(STORAGE_KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  syncUserDataToFirestore('customQuestions', updated);
+  syncAll30ChaptersFromMasterToCloud(updated).catch(() => {});
+  return updated;
+};
+
+export const clearAllCustomQuestions = (): Question[] => {
+  localStorage.removeItem(STORAGE_KEYS.CUSTOM_QUESTIONS);
+  syncUserDataToFirestore('customQuestions', []);
+  syncAll30ChaptersFromMasterToCloud([]).catch(() => {});
+  return [];
+};
+
+export const subscribeToUserAppData = (onDataUpdate?: () => void) => {
+  try {
+    const devId = getDeviceId();
+    const storedUid = localStorage.getItem('xray_prep_logged_in_uid') || devId;
+    const userDocRef = doc(db, 'userAppData', storedUid);
+    return onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (Array.isArray(data.customQuestions)) {
+          const cloudCustomJson = JSON.stringify(data.customQuestions);
+          const localCustomJson = localStorage.getItem(STORAGE_KEYS.CUSTOM_QUESTIONS) || '[]';
+          if (cloudCustomJson !== localCustomJson) {
+            localStorage.setItem(STORAGE_KEYS.CUSTOM_QUESTIONS, cloudCustomJson);
+            if (onDataUpdate) onDataUpdate();
+          }
+        }
+      }
+    }, (err) => {
+      console.warn('UserAppData live sync note:', err);
+    });
+  } catch (e) {
+    return () => {};
+  }
 };
 
 export const getAllQuestions = (): Question[] => {

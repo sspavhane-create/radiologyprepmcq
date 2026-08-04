@@ -813,7 +813,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {coreQuestions.map((q) => {
+          {coreQuestions.map((q, idx) => {
             const status = questionStatusMap[q.id];
             const isSaved = bookmarkedIds.includes(q.id);
 
@@ -823,7 +823,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             return (
               <div
-                key={q.id}
+                key={`${q.id}_${idx}`}
                 onClick={() => onSelectQuestionDirect(q.id)}
                 className="cursor-pointer bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-teal-500/50 p-4 rounded-xl space-y-2 transition-all group shadow-sm"
               >

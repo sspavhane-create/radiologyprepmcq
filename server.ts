@@ -10,7 +10,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Helper for Gemini AI client initialization
   const getGeminiClient = () => {
@@ -183,6 +184,122 @@ Return ONLY a valid JSON array.`;
       res.status(500).json({
         success: false,
         error: 'Failed to generate custom practice questions via AI.'
+      });
+    }
+  });
+
+  // AI Endpoint: Parse PDF File or Text into App-Compatible MCQ JSON
+  app.post('/api/ai/parse-pdf-mcqs', async (req, res) => {
+    try {
+      const { pdfBase64, rawText, category, chapterId = 19 } = req.body;
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        const sampleQs = Array.from({ length: 5 }).map((_, idx) => {
+          return {
+            id: Date.now() + idx,
+            category: category || 'General Radiography',
+            section: 'technical',
+            question: `Extracted MCQ #${idx + 1} from PDF Document`,
+            question_mr: `PDF दस्तऐवजातील एक्सट्रॅक्ट केलेला MCQ प्रश्न क्र. #${idx + 1}`,
+            options: [
+              "(A) Standard Parameter Choice A",
+              "(B) Clinical Guideline Choice B",
+              "(C) Alternative Protocol Choice C",
+              "(D) Exposure Control Choice D"
+            ],
+            options_mr: [
+              "(A) मानक निकष पर्याय A",
+              "(B) क्लिनिकल मार्गदर्शक पर्याय B",
+              "(C) पर्यायी प्रोटोकॉल पर्याय C",
+              "(D) एक्सपोजर नियंत्रण पर्याय D"
+            ],
+            correct_answer: "(B) Clinical Guideline Choice B",
+            correct_answer_mr: "(B) क्लिनिकल मार्गदर्शक पर्याय B",
+            explanation: "Extracted from uploaded PDF source material.",
+            explanation_mr: "अपलोड केलेल्या PDF संदर्भातून एक्सट्रॅक्ट केलेले स्पष्टीकरण.",
+            source_page: Number(chapterId) || 19,
+            difficulty: "medium"
+          };
+        });
+
+        return res.json({
+          success: true,
+          isFallback: true,
+          questions: sampleQs,
+          message: 'Local fallback MCQ parser used (GEMINI_API_KEY not configured).'
+        });
+      }
+
+      let contents: any[];
+      const promptText = `You are a Senior Radiography Scientific Officer and Exam Question Author.
+Analyze the attached PDF document / text content.
+Extract all Multiple Choice Questions (MCQs) present in the document into a standard web-app compatible JSON array.
+If the document contains study notes or chapter content instead of explicit MCQs, create high-yield MCQs covering the key concepts in the document for the category "${category || 'Radiography'}".
+
+Each question in the JSON array MUST strictly follow this schema:
+[
+  {
+    "question": "Question text in English",
+    "question_mr": "प्रश्न विधान मराठीत",
+    "options": ["(A) Choice 1", "(B) Choice 2", "(C) Choice 3", "(D) Choice 4"],
+    "options_mr": ["(A) पर्याय १", "(B) पर्याय २", "(C) पर्याय ३", "(D) पर्याय ४"],
+    "correct_answer": "(A) Choice 1",
+    "correct_answer_mr": "(A) पर्याय १",
+    "explanation": "Clear explanation in English",
+    "explanation_mr": "स्पष्टीकरण मराठीत",
+    "category": "${category || 'Radiography & Machine Principles'}",
+    "source_page": ${Number(chapterId) || 19},
+    "difficulty": "medium"
+  }
+]
+
+Requirements:
+- Ensure each option string starts with "(A)", "(B)", "(C)", or "(D)".
+- "correct_answer" must match one of the string elements in "options" exactly.
+- Provide both English and Marathi translations for questions, options, correct_answer, and explanation.
+- Return ONLY a valid JSON array.`;
+
+      if (pdfBase64) {
+        contents = [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'application/pdf',
+                  data: pdfBase64
+                }
+              },
+              { text: promptText }
+            ]
+          }
+        ];
+      } else {
+        contents = [`${promptText}\n\nDOCUMENT CONTENT:\n${rawText || ''}`];
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents,
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const responseText = response.text || '[]';
+      const questions = JSON.parse(responseText);
+
+      res.json({
+        success: true,
+        questions
+      });
+    } catch (err: any) {
+      console.error('PDF MCQ Parse Error:', err);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to convert PDF into MCQs.',
+        details: err?.message
       });
     }
   });

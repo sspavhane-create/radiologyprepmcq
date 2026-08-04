@@ -17,8 +17,11 @@ import {
   Phone,
   CreditCard,
   Clock,
-  Megaphone
+  Megaphone,
+  FileJson
 } from 'lucide-react';
+import { Question } from '../types';
+import { JsonUploadSection } from './JsonUploadSection';
 import { 
   getAllFirestoreUsers, 
   setFirestoreUserPremiumStatus, 
@@ -39,18 +42,62 @@ import { AdminPaymentDashboard } from './AdminPaymentDashboard';
 interface AdminPanelModalProps {
   onClose: () => void;
   onStatusUpdated?: () => void;
+  questions?: Question[];
+  onAddMultipleQuestions?: (newQs: Question[]) => void;
+  onRefreshQuestions?: () => void;
 }
 
-export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onStatusUpdated }) => {
+export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ 
+  onClose, 
+  onStatusUpdated,
+  questions = [],
+  onAddMultipleQuestions = () => {},
+  onRefreshQuestions
+}) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
   
-  const [activeTab, setActiveTab] = useState<'phones' | 'payments' | 'users' | 'news'>('phones');
+  const [activeTab, setActiveTab] = useState<'phones' | 'payments' | 'users' | 'news' | 'questions' | 'security'>('phones');
   const [pendingPaymentCount, setPendingPaymentCount] = useState<number>(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
+
+  // Admin password change states
+  const [oldPinInput, setOldPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+
+  const getAdminPin = (): string => {
+    return localStorage.getItem('xray_admin_pin') || '9769441271';
+  };
+
+  const setAdminPin = (pin: string) => {
+    localStorage.setItem('xray_admin_pin', pin);
+  };
+
+  const handleChangeAdminPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const currentPin = getAdminPin();
+    if (oldPinInput !== currentPin) {
+      alert('जुना पिन चुकीचा आहे!');
+      return;
+    }
+    if (!newPinInput || newPinInput.length < 4) {
+      alert('नवीन पिन किमान ४ अंकी किंवा अक्षरी असावा.');
+      return;
+    }
+    if (newPinInput !== confirmPinInput) {
+      alert('नवीन पिन आणि कन्फर्म पिन जुळत नाहीत!');
+      return;
+    }
+    setAdminPin(newPinInput);
+    setOldPinInput('');
+    setNewPinInput('');
+    setConfirmPinInput('');
+    alert('ॲडमिन पिन यशस्वीरित्या बदलला गेला आहे!');
+  };
 
   // News ticker states
   const [newsItems, setNewsItems] = useState<string[]>([]);
@@ -265,6 +312,32 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
               <Megaphone className="w-4 h-4" />
               <span>घोषणा / News ({newsItems.length})</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('questions')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'questions'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <FileJson className="w-4 h-4 text-slate-950" />
+              <span>📁 Questions & JSON Upload</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                activeTab === 'security'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Key className="w-4 h-4" />
+              <span>🔐 पासवर्ड बदला</span>
+            </button>
           </div>
           )}
         </div>
@@ -287,7 +360,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
                   onChange={(e) => setPinInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      if (pinInput === '9769441271') setIsAdminAuthenticated(true);
+                      if (pinInput === getAdminPin()) setIsAdminAuthenticated(true);
                       else alert('चुकीचा पिन!');
                     }
                   }}
@@ -298,7 +371,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
               <button
                 type="button"
                 onClick={() => {
-                  if (pinInput === '9769441271') setIsAdminAuthenticated(true);
+                  if (pinInput === getAdminPin()) setIsAdminAuthenticated(true);
                   else alert('चुकीचा पिन!');
                 }}
                 className="w-full max-w-xs bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 rounded-xl transition-all"
@@ -308,6 +381,65 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
             </div>
           ) : (
             <>
+        {/* TAB 6: Change Admin Password / PIN */}
+        {activeTab === 'security' && (
+          <div className="space-y-4 animate-fadeIn max-w-md mx-auto py-4">
+            <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">ॲडमिन पिन / पासवर्ड बदल (Change Admin PIN)</h3>
+                  <p className="text-[11px] text-slate-400">सुरक्षिततेसाठी तुम्ही तुमचा ॲडमिन पिन बदलू शकता.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleChangeAdminPin} className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">जुना ॲडमिन पिन (Current PIN):</label>
+                  <input
+                    type="password"
+                    value={oldPinInput}
+                    onChange={(e) => setOldPinInput(e.target.value)}
+                    placeholder="उदा. 9769441271"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">नवीन ॲडमिन पिन (New PIN):</label>
+                  <input
+                    type="password"
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    placeholder="नवीन पिन टाका (किमान ४ अंक)"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">नवीन पिन कन्फर्म करा (Confirm New PIN):</label>
+                  <input
+                    type="password"
+                    value={confirmPinInput}
+                    onChange={(e) => setConfirmPinInput(e.target.value)}
+                    placeholder="पुन्हा नवीन पिन टाका"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 mt-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>ॲडमिन पासवर्ड अपडेट करा</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
         {/* TAB 4: News Ticker Manager */}
         {activeTab === 'news' && (
           <div className="space-y-4 animate-fadeIn">
@@ -396,6 +528,17 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose, onSta
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB 5: Questions JSON Upload & Supabase Sync */}
+        {activeTab === 'questions' && (
+          <div className="space-y-4 animate-fadeIn">
+            <JsonUploadSection
+              questions={questions}
+              onAddMultipleQuestions={onAddMultipleQuestions}
+              onRefreshQuestions={onRefreshQuestions}
+            />
           </div>
         )}
 

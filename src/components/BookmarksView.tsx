@@ -96,13 +96,13 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredQuestions.map((q) => {
+          {filteredQuestions.map((q, idx) => {
             const bookmarkObj = bookmarks.find(b => b.questionId === q.id);
             const isEditingThisNote = editingNoteId === q.id;
 
             return (
               <div
-                key={q.id}
+                key={`${q.id}_${idx}`}
                 className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 space-y-4 shadow-md transition-all"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">

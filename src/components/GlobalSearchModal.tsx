@@ -125,9 +125,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                 <span>शोधलेले MCQ प्रश्न ({filteredQuestions.length})</span>
               </h4>
               <div className="space-y-2">
-                {filteredQuestions.map((q) => (
+                {filteredQuestions.map((q, idx) => (
                   <button
-                    key={q.id}
+                    key={`${q.id}_${idx}`}
                     onClick={() => {
                       onSelectQuestion(q.id);
                       onClose();

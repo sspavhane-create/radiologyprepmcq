@@ -33,6 +33,7 @@ interface QuizViewProps {
   onFinishQuiz: (answers: Record<number, UserAnswer>, timeSpentSeconds: number) => void;
   onAskAITutor: (q: Question) => void;
   onExitQuiz: () => void;
+  onJumpToChapter?: (chapterId: number, questionId?: number) => void;
   initialQuestionIndex?: number;
   isCentral?: boolean;
   isUnlocked?: boolean;
@@ -48,6 +49,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onFinishQuiz,
   onAskAITutor,
   onExitQuiz,
+  onJumpToChapter,
   initialQuestionIndex = 0,
   isCentral = false,
   isUnlocked = false,
@@ -69,8 +71,9 @@ export const QuizView: React.FC<QuizViewProps> = ({
     setIsPremium(isUnlocked || getIsPremiumUnlocked());
   }, [isUnlocked]);
 
+  // Maintain stationary scroll position during question transitions
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // No automatic window scroll reset on question navigation
   }, [currentIndex]);
 
   const refreshPremiumState = () => {
@@ -219,7 +222,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-12 w-full">
       {/* Top Header Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-md min-h-[64px] shrink-0">
+      <div id="quiz-top-header" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-md min-h-[64px] shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30">
@@ -245,7 +248,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
             return (
               <button
-                key={q.id}
+                key={`${q.id}_${idx}`}
                 onClick={() => {
                   updateQuestionTime();
                   setCurrentIndex(idx);
@@ -312,11 +315,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
       </div>
 
       {/* Main Question Card */}
-      <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-6 space-y-4 shadow-2xl relative flex flex-col justify-between">
+      <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-6 space-y-4 shadow-2xl relative flex flex-col justify-between min-h-[480px]">
         <div className="space-y-4">
           {/* Category & Section Metadata */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-black font-mono bg-teal-500/20 text-teal-300 px-2.5 py-1 rounded-lg border border-teal-500/30">
                 Q#{currentIndex + 1}
               </span>
@@ -326,6 +329,17 @@ export const QuizView: React.FC<QuizViewProps> = ({
               <span className="text-xs font-bold text-amber-300 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 uppercase hidden sm:inline">
                 २ गुण (2 Marks)
               </span>
+
+              {/* Direct Chapter Jump Button */}
+              {onJumpToChapter && (
+                <button
+                  onClick={() => onJumpToChapter(currentQuestion.chapterId || 1, currentQuestion.id)}
+                  className="px-2.5 py-0.5 rounded-lg bg-teal-500/20 hover:bg-teal-500 text-teal-300 hover:text-slate-950 text-[11px] font-bold border border-teal-500/30 transition-all flex items-center gap-1 shadow-sm"
+                  title="या प्रकरणावर जाऊन अभ्यास करा"
+                >
+                  <span>📍 प्रकरणावर जा ({currentQuestion.chapterId ? `Ch #${currentQuestion.chapterId}` : 'Chapter'})</span>
+                </button>
+              )}
             </div>
 
             {/* Action Tools */}
